@@ -240,7 +240,7 @@ export default function Rides() {
                           {formatCurrency(r.amount)}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                          {r.platform}
+                          {r.platform === "Outro" && r.customSource ? r.customSource : r.platform}
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground">
