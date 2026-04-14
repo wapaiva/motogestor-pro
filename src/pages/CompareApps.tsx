@@ -29,6 +29,14 @@ const tooltipStyle: React.CSSProperties = {
   padding: "8px 12px",
 };
 
+const tooltipItemStyle: React.CSSProperties = {
+  color: "hsl(210, 20%, 95%)",
+};
+
+const tooltipLabelStyle: React.CSSProperties = {
+  color: "hsl(210, 20%, 80%)",
+};
+
 type Period = "todos" | "hoje" | "7dias" | "30dias";
 
 const PERIOD_LABELS: Record<Period, string> = {
