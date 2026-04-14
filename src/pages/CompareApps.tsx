@@ -379,7 +379,7 @@ export default function CompareApps() {
               <BarChart data={platformData} layout="vertical" barSize={18} margin={{ left: 5, right: 50, top: 0, bottom: 0 }}>
                 <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(215, 15%, 55%)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} axisLine={false} tickLine={false} width={75} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} cursor={false} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} cursor={false} />
                 <Bar dataKey="ganhos" radius={[0, 8, 8, 0]} animationDuration={800} name="Ganhos">
                   {platformData.map((p) => (
                     <Cell key={p.name} fill={getColor(p.name)} />
@@ -399,7 +399,7 @@ export default function CompareApps() {
                     <Cell key={p.name} fill={getColor(p.name)} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number, name: string) => [v + " corridas", name]} contentStyle={tooltipStyle} />
+                <Tooltip formatter={(v: number, name: string) => [v + " corridas", name]} contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} labelStyle={tooltipLabelStyle} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
