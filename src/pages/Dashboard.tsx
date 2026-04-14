@@ -175,7 +175,7 @@ export default function Dashboard() {
     </div>
   );
 
-  const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name }: { cx: number; cy: number; midAngle: number; outerRadius: number; name: string; percent: number }) => {
+  const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name }: { cx?: number; cy?: number; midAngle?: number; outerRadius?: number; name?: string; percent?: number }) => {
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 18;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
