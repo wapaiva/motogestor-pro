@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart3, Trophy, TrendingUp, ArrowLeft, DollarSign, MapPin, AlertTriangle, Lightbulb, Filter, Bike } from "lucide-react";
+import { BarChart3, Trophy, TrendingUp, ArrowLeft, DollarSign, MapPin, AlertTriangle, Lightbulb, Bike } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LabelList,
@@ -87,15 +87,20 @@ export default function CompareApps() {
     return Object.entries(map)
       .map(([name, d]) => {
         const expShare = totalRides > 0 ? totalExpenses * (d.rides / totalRides) : 0;
+        const lucro = d.earnings - expShare;
+        const eficiencia = d.earnings > 0 ? (lucro / d.earnings) * 100 : 0;
         return {
           name,
           ganhos: d.earnings,
           corridas: d.rides,
           distancia: d.distance,
-          lucro: d.earnings - expShare,
+          lucro,
+          expShare,
           mediaCorrida: d.rides > 0 ? d.earnings / d.rides : 0,
+          lucroPorCorrida: d.rides > 0 ? lucro / d.rides : 0,
           valorPorKm: d.distance > 0 ? d.earnings / d.distance : 0,
-          lucroPorKm: d.distance > 0 ? (d.earnings - expShare) / d.distance : 0,
+          lucroPorKm: d.distance > 0 ? lucro / d.distance : 0,
+          eficiencia,
         };
       })
       .sort((a, b) => b.ganhos - a.ganhos);
@@ -112,43 +117,65 @@ export default function CompareApps() {
     return [...platformData].sort((a, b) => b.corridas - a.corridas)[0];
   }, [platformData]);
 
-  // Smart insights
   const insights = useMemo(() => {
     const msgs: { icon: React.ReactNode; text: string; type: "success" | "warning" | "info" }[] = [];
     if (platformData.length === 0) return msgs;
 
-    // Low efficiency alert
-    const lowEfficiency = platformData.find((p) => p.distancia > 0 && p.valorPorKm < 1 && p.corridas >= 2);
-    if (lowEfficiency) {
+    const lowEff = platformData.find((p) => p.corridas >= 2 && p.eficiencia < 30);
+    if (lowEff) {
       msgs.push({
-        icon: <AlertTriangle className="w-4 h-4 text-warning" />,
-        text: `Você rodou muito e lucrou pouco na ${lowEfficiency.name} (${formatCurrency(lowEfficiency.valorPorKm)}/km)`,
+        icon: <AlertTriangle className="w-4 h-4 text-destructive" />,
+        text: `⚠️ ${lowEff.name} tem eficiência de apenas ${lowEff.eficiencia.toFixed(1)}% — quase 70% do que você ganha vai embora em custos.`,
         type: "warning",
       });
     }
 
-    // Suggestion
-    if (bestPerKm && bestApp && bestPerKm.name !== bestApp.name) {
-      msgs.push({
-        icon: <Lightbulb className="w-4 h-4 text-primary" />,
-        text: `${bestPerKm.name} paga melhor por km. Considere focar mais nela!`,
-        type: "info",
-      });
-    }
-
-    if (platformData.length >= 2) {
-      const worst = [...platformData].sort((a, b) => a.valorPorKm - b.valorPorKm)[0];
-      if (worst && worst.valorPorKm > 0) {
+    const qualified = platformData.filter((p) => p.corridas >= 2 && p.distancia > 0);
+    if (qualified.length >= 2) {
+      const best = [...qualified].sort((a, b) => b.lucroPorKm - a.lucroPorKm)[0];
+      const worst = [...qualified].sort((a, b) => a.lucroPorKm - b.lucroPorKm)[0];
+      const diff = best.lucroPorKm - worst.lucroPorKm;
+      if (diff > 0 && worst.lucroPorKm > 0) {
+        const pctGain = ((diff / worst.lucroPorKm) * 100).toFixed(0);
         msgs.push({
-          icon: <Lightbulb className="w-4 h-4 text-primary" />,
-          text: `Evite corridas longas com baixo retorno na ${worst.name}`,
+          icon: <TrendingUp className="w-4 h-4 text-success" />,
+          text: `A diferença de lucro/km entre ${best.name} e ${worst.name} é de ${formatCurrency(diff)}. Focar no ${best.name} pode aumentar seu lucro em até ${pctGain}% por km rodado.`,
           type: "info",
         });
       }
     }
 
-    return msgs;
-  }, [platformData, bestPerKm, bestApp]);
+    if (platformData.length >= 2) {
+      const byRides = [...platformData].sort((a, b) => b.corridas - a.corridas);
+      const byProfit = [...platformData].sort((a, b) => b.lucro - a.lucro);
+      if (byRides[0].name !== byProfit[0].name) {
+        msgs.push({
+          icon: <Lightbulb className="w-4 h-4 text-warning" />,
+          text: `Você fez mais corridas na ${byRides[0].name} do que na ${byProfit[0].name}, mas lucrou mais na ${byProfit[0].name}. Avalie se vale a pena.`,
+          type: "info",
+        });
+      }
+    }
+
+    const bestEff = [...platformData].sort((a, b) => b.eficiencia - a.eficiencia)[0];
+    if (bestEff && bestEff.corridas >= 2) {
+      msgs.push({
+        icon: <TrendingUp className="w-4 h-4 text-success" />,
+        text: `A ${bestEff.name} tem a melhor eficiência: ${bestEff.eficiencia.toFixed(1)}% do que você recebe vira lucro real.`,
+        type: "success",
+      });
+    }
+
+    if (platformData.length === 1) {
+      msgs.push({
+        icon: <Lightbulb className="w-4 h-4 text-primary" />,
+        text: `Use mais de um app e volte aqui para ver qual realmente compensa mais.`,
+        type: "info",
+      });
+    }
+
+    return msgs.slice(0, 5);
+  }, [platformData]);
 
   const platformNames = ["Uber", "99", "iFood", "Rappi", "UaiRango", "MotoSJ", "Pedemoto", "Particular", "Outro"];
   const getColor = (name: string) => {
@@ -157,6 +184,22 @@ export default function CompareApps() {
   };
 
   const chartHeight = Math.max(platformData.length * 48, 120);
+
+  const bestValues = useMemo(() => {
+    if (platformData.length === 0) return { ganhos: "", corridas: "", valorPorKm: "", lucro: "", eficiencia: "" };
+    const byGanhos = [...platformData].sort((a, b) => b.ganhos - a.ganhos)[0].name;
+    const byCorridas = [...platformData].sort((a, b) => b.corridas - a.corridas)[0].name;
+    const byValorKm = [...platformData].sort((a, b) => b.valorPorKm - a.valorPorKm)[0].name;
+    const byLucro = [...platformData].sort((a, b) => b.lucro - a.lucro)[0].name;
+    const byEficiencia = [...platformData].sort((a, b) => b.eficiencia - a.eficiencia)[0].name;
+    return { ganhos: byGanhos, corridas: byCorridas, valorPorKm: byValorKm, lucro: byLucro, eficiencia: byEficiencia };
+  }, [platformData]);
+
+  const efficiencyColor = (eff: number) => {
+    if (eff >= 50) return "text-success";
+    if (eff >= 30) return "text-warning";
+    return "text-destructive";
+  };
 
   return (
     <div className="pb-20 px-4 pt-4 max-w-lg mx-auto">
@@ -170,7 +213,6 @@ export default function CompareApps() {
         </div>
       </div>
 
-      {/* Period Filter */}
       <div className="flex gap-2 mb-4 overflow-x-auto">
         {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
           <button
@@ -187,6 +229,20 @@ export default function CompareApps() {
         ))}
       </div>
 
+      <details className="premium-card p-4 mb-4 animate-fade-in">
+        <summary className="text-sm font-semibold text-foreground cursor-pointer select-none">
+          🧮 Como calculamos o lucro real?
+        </summary>
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-muted-foreground">Lucro líquido = Ganhos brutos − Custos proporcionais</p>
+          <p className="text-xs text-muted-foreground">Custo proporcional da plataforma = Total de gastos do período × (corridas desta plataforma ÷ total de corridas)</p>
+          <p className="text-xs text-muted-foreground">R$/km = Ganhos ÷ Distância total percorrida</p>
+          <p className="text-xs text-muted-foreground">Lucro/km = Lucro líquido ÷ Distância total</p>
+          <p className="text-xs text-muted-foreground">Eficiência (%) = (Lucro líquido ÷ Ganhos brutos) × 100</p>
+          <p className="text-xs text-muted-foreground">Média por corrida = Ganhos ÷ Número de corridas</p>
+        </div>
+      </details>
+
       {platformData.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -195,7 +251,6 @@ export default function CompareApps() {
         </div>
       ) : (
         <>
-          {/* Highlight cards */}
           <div className="grid grid-cols-1 gap-2 mb-4">
             {bestApp && (
               <div className="premium-card p-4 animate-fade-in hover-lift">
@@ -206,15 +261,12 @@ export default function CompareApps() {
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-semibold text-muted-foreground">🏆 Maior faturamento</span>
                     <p className="text-base font-bold text-foreground truncate">{bestApp.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(bestApp.ganhos)} em {bestApp.corridas} corridas
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formatCurrency(bestApp.ganhos)} em {bestApp.corridas} corridas</p>
                   </div>
                   <TrendingUp className="w-5 h-5 text-success shrink-0" />
                 </div>
               </div>
             )}
-
             {bestPerKm && bestPerKm.valorPorKm > 0 && (
               <div className="premium-card p-4 animate-fade-in hover-lift">
                 <div className="flex items-center gap-3">
@@ -224,15 +276,12 @@ export default function CompareApps() {
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-semibold text-muted-foreground">🚀 Melhor R$/km</span>
                     <p className="text-base font-bold text-foreground truncate">{bestPerKm.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(bestPerKm.valorPorKm)}/km • {bestPerKm.distancia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} km
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formatCurrency(bestPerKm.valorPorKm)}/km • {bestPerKm.distancia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} km</p>
                   </div>
                   <DollarSign className="w-5 h-5 text-warning shrink-0" />
                 </div>
               </div>
             )}
-
             {mostRides && (
               <div className="premium-card p-4 animate-fade-in hover-lift">
                 <div className="flex items-center gap-3">
@@ -242,16 +291,13 @@ export default function CompareApps() {
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-semibold text-muted-foreground">📦 Mais corridas</span>
                     <p className="text-base font-bold text-foreground truncate">{mostRides.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {mostRides.corridas} corridas • {mostRides.distancia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} km
-                    </p>
+                    <p className="text-xs text-muted-foreground">{mostRides.corridas} corridas • {mostRides.distancia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} km</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Smart Insights */}
           {insights.length > 0 && (
             <div className="space-y-2 mb-4">
               {insights.map((insight, i) => (
@@ -263,7 +309,36 @@ export default function CompareApps() {
             </div>
           )}
 
-          {/* Platform Cards */}
+          <div className="premium-card p-4 mb-4 animate-fade-in">
+            <h3 className="text-sm font-semibold text-card-foreground mb-3">📋 Comparativo Técnico</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="text-muted-foreground font-semibold">
+                    <th className="text-left py-1.5 pr-2">App</th>
+                    <th className="text-right py-1.5 px-1.5">Ganhos</th>
+                    <th className="text-right py-1.5 px-1.5">Corridas</th>
+                    <th className="text-right py-1.5 px-1.5">R$/km</th>
+                    <th className="text-right py-1.5 px-1.5">Lucro</th>
+                    <th className="text-right py-1.5 pl-1.5">Eficiência</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {platformData.map((p, i) => (
+                    <tr key={p.name} className={i % 2 === 1 ? "bg-secondary/30" : ""}>
+                      <td className="py-1.5 pr-2 font-medium text-foreground">{p.name}</td>
+                      <td className={`text-right py-1.5 px-1.5 ${bestValues.ganhos === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.ganhos)}</td>
+                      <td className={`text-right py-1.5 px-1.5 ${bestValues.corridas === p.name ? "font-bold text-primary" : "text-foreground"}`}>{p.corridas}</td>
+                      <td className={`text-right py-1.5 px-1.5 ${bestValues.valorPorKm === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.valorPorKm)}</td>
+                      <td className={`text-right py-1.5 px-1.5 ${bestValues.lucro === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.lucro)}</td>
+                      <td className={`text-right py-1.5 pl-1.5 ${bestValues.eficiencia === p.name ? "font-bold text-primary" : efficiencyColor(p.eficiencia)}`}>{p.eficiencia.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div className="space-y-2 mb-5">
             {platformData.map((p, i) => (
               <div key={p.name} className="premium-card p-3 animate-fade-in hover-lift">
@@ -281,12 +356,15 @@ export default function CompareApps() {
                   <span className="text-[10px] text-muted-foreground">Média: {formatCurrency(p.mediaCorrida)}</span>
                   <span className="text-[10px] text-muted-foreground">R$/km: {formatCurrency(p.valorPorKm)}</span>
                   <span className="text-[10px] text-muted-foreground">Lucro: {formatCurrency(p.lucro)}</span>
+                  <span className="text-[10px] text-muted-foreground">Lucro/corrida: {formatCurrency(p.lucroPorCorrida)}</span>
+                  <span className="text-[10px] text-muted-foreground">Lucro/km: {formatCurrency(p.lucroPorKm)}</span>
+                  <span className={`text-[10px] ${efficiencyColor(p.eficiencia)}`}>Eficiência: {p.eficiencia.toFixed(1)}%</span>
+                  <span className="text-[10px] text-muted-foreground">Custo proporcional: {formatCurrency(p.expShare)}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Bar Chart */}
           <div className="premium-card p-4 mb-4 animate-fade-in">
             <h3 className="text-sm font-semibold text-card-foreground mb-3">Ganhos por Plataforma</h3>
             <ResponsiveContainer width="100%" height={chartHeight}>
@@ -304,7 +382,6 @@ export default function CompareApps() {
             </ResponsiveContainer>
           </div>
 
-          {/* Pie Chart */}
           <div className="premium-card p-4 mb-4 animate-fade-in">
             <h3 className="text-sm font-semibold text-card-foreground mb-3">Distribuição de Corridas</h3>
             <ResponsiveContainer width="100%" height={220}>
