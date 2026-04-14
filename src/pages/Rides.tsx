@@ -114,7 +114,7 @@ export default function Rides() {
       </div>
 
       {showForm && (
-        <div className="glass-card rounded-xl p-4 mb-4 animate-fade-in space-y-3">
+        <div className="glass-card rounded-xl p-4 mb-4 animate-fade-in space-y-3 relative z-10">
           <div>
             <label className="text-xs font-medium text-muted-foreground">
               Data
