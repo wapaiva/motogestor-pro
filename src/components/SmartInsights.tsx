@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef } from "react";
 import { AlertTriangle, TrendingDown, Fuel, Wrench, Zap, BarChart3 } from "lucide-react";
-import { storage, formatCurrency, isThisWeek, isThisMonth, isToday, getAvgFuelPrice } from "@/lib/storage";
+import { storage, formatCurrency, isThisWeek, isThisMonth, isToday, getAvgFuelPrice, obterConsumoAtivo, getConsumoReal } from "@/lib/storage";
 import { playAlertSound } from "@/lib/sounds";
 
 interface Insight {
@@ -117,31 +117,60 @@ export default function SmartInsights() {
       });
     }
 
-    // Expected vs real consumption insight
-    const totalFuelLiters = fuel.reduce((s, f) => s + f.liters, 0);
-    const totalRideDistance = rides.reduce((s, r) => s + r.distance, 0);
-    if (totalFuelLiters > 0 && totalRideDistance > 0 && profile.expectedConsumption > 0) {
-      const realConsumption = totalRideDistance / totalFuelLiters;
-      const diff = ((profile.expectedConsumption - realConsumption) / profile.expectedConsumption) * 100;
-      if (diff > 15) {
+    // Smart consumption insight with dual mode
+    const consumo = obterConsumoAtivo();
+    const consumoReal = getConsumoReal();
+    
+    if (consumoReal !== null && profile.expectedConsumption > 0) {
+      const diff = ((profile.expectedConsumption - consumoReal) / profile.expectedConsumption) * 100;
+      if (diff > 40) {
         result.push({
-          message: `Consumo real (${realConsumption.toFixed(1)} km/L) está ${diff.toFixed(0)}% abaixo do esperado (${profile.expectedConsumption} km/L)`,
+          message: `⚠️ Consumo real (${consumoReal.toFixed(1)} km/L) está ${diff.toFixed(0)}% pior que o esperado (${profile.expectedConsumption} km/L). Possível problema mecânico!`,
+          type: "danger",
+          icon: Wrench,
+        });
+      } else if (diff > 15) {
+        result.push({
+          message: `Consumo real (${consumoReal.toFixed(1)} km/L) está ${diff.toFixed(0)}% abaixo do esperado (${profile.expectedConsumption} km/L)`,
           type: "warning",
           icon: Fuel,
         });
       }
+    } else if (consumoReal === null && fuel.length >= 1) {
+      result.push({
+        message: "Adicione mais um abastecimento para ativar o consumo real automático",
+        type: "tip",
+        icon: Fuel,
+      });
     }
 
-    // Cost per km alert using expected consumption
-    if (profile.expectedConsumption > 0) {
+    // Cost per km alert using active consumption
+    if (consumo.valor > 0) {
       const avgPrice = getAvgFuelPrice();
       if (avgPrice > 0) {
-        const costPerKm = avgPrice / profile.expectedConsumption;
+        const costPerKm = avgPrice / consumo.valor;
         if (costPerKm > 0.5) {
           result.push({
-            message: `Custo estimado de combustível: ${formatCurrency(costPerKm)}/km`,
+            message: `Custo de combustível: ${formatCurrency(costPerKm)}/km (${consumo.modo === "real" ? "real" : "estimado"})`,
             type: "tip",
             icon: Fuel,
+          });
+        }
+      }
+    }
+
+    // Fuel spending trend alert
+    const recentFuel = [...fuel].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+    if (recentFuel.length >= 3) {
+      const avgRecent = recentFuel.reduce((s, f) => s + (f.amount / f.liters), 0) / recentFuel.length;
+      const olderFuel = [...fuel].sort((a, b) => b.date.localeCompare(a.date)).slice(3, 6);
+      if (olderFuel.length >= 2) {
+        const avgOlder = olderFuel.reduce((s, f) => s + (f.amount / f.liters), 0) / olderFuel.length;
+        if (avgRecent > avgOlder * 1.1) {
+          result.push({
+            message: `Preço do combustível subiu ${((avgRecent / avgOlder - 1) * 100).toFixed(0)}% recentemente`,
+            type: "warning",
+            icon: AlertTriangle,
           });
         }
       }

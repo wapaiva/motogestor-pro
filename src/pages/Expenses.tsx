@@ -11,6 +11,8 @@ import {
   FuelEntry,
   MaintenanceEntry,
   Expense,
+  validarAbastecimento,
+  getConsumoReal,
 } from "@/lib/storage";
 import { playHornSound } from "@/lib/sounds";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -108,10 +110,27 @@ export default function Expenses() {
       toast.error("Preencha todos os campos: valor, litros e KM atual.");
       return;
     }
-    storage.addFuel({ id: generateId(), date: fuelDate.toISOString(), amount: parseFloat(fuelAmount), liters: parseFloat(fuelLiters) || 0, odometer: parseFloat(fuelOdo) || 0, fuelType });
+    const liters = parseFloat(fuelLiters);
+    const odo = parseFloat(fuelOdo);
+    const amount = parseFloat(fuelAmount);
+    if (liters <= 0) { toast.error("Litros deve ser maior que 0."); return; }
+    if (amount <= 0) { toast.error("Valor deve ser maior que 0."); return; }
+    if (odo < 0) { toast.error("KM deve ser maior ou igual a 0."); return; }
+    
+    const validation = validarAbastecimento(odo);
+    if (!validation.valid) { toast.error(validation.message!); return; }
+
+    storage.addFuel({ id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType });
     setFuel(storage.getFuel());
     setFuelAmount(""); setFuelLiters(""); setFuelOdo(""); setFuelDate(new Date());
-    setShowForm(false); playHornSound(); toast.success("Abastecimento registrado!");
+    setShowForm(false); playHornSound();
+    
+    const consumoReal = getConsumoReal();
+    if (consumoReal !== null) {
+      toast.success(`Abastecimento registrado! Consumo real: ${consumoReal.toFixed(1)} km/L`);
+    } else {
+      toast.success("Abastecimento registrado! Adicione mais um para calcular consumo real.");
+    }
   };
 
   const addMaint = () => {

@@ -181,7 +181,6 @@ export function calcularLucro(valorCorrida: number, custoCombustivel: number): n
 export function getAvgFuelPrice(): number {
   const fuelEntries = storage.getFuel();
   if (fuelEntries.length === 0) return 0;
-  // Sort by date desc and take last 5 entries for avg
   const recent = [...fuelEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const totalPrice = recent.reduce((sum, f) => sum + (f.amount / f.liters), 0);
   return totalPrice / recent.length;
@@ -191,4 +190,58 @@ export function getAvgFuelPrice(): number {
 export function isConsumptionConfigured(): boolean {
   const profile = storage.getProfile();
   return profile.expectedConsumption > 0;
+}
+
+// === Real consumption calculation ===
+
+/** Calculate real consumption from two odometer readings and liters */
+export function calcularConsumoReal(kmAtual: number, kmAnterior: number, litros: number): number {
+  if (litros <= 0 || kmAtual <= kmAnterior) return 0;
+  return (kmAtual - kmAnterior) / litros;
+}
+
+/** Get real consumption from fuel entries (requires at least 2 entries) */
+export function getConsumoReal(): number | null {
+  const fuelEntries = storage.getFuel();
+  if (fuelEntries.length < 2) return null;
+  
+  const sorted = [...fuelEntries].sort((a, b) => a.odometer - b.odometer);
+  
+  let totalKm = 0;
+  let totalLiters = 0;
+  
+  for (let i = 1; i < sorted.length; i++) {
+    const kmDiff = sorted[i].odometer - sorted[i - 1].odometer;
+    if (kmDiff > 0 && sorted[i].liters > 0) {
+      totalKm += kmDiff;
+      totalLiters += sorted[i].liters;
+    }
+  }
+  
+  if (totalLiters <= 0 || totalKm <= 0) return null;
+  return totalKm / totalLiters;
+}
+
+/** Get active consumption: real if available, otherwise expected (fallback) */
+export function obterConsumoAtivo(): { valor: number; modo: "real" | "estimado" } {
+  const real = getConsumoReal();
+  if (real !== null && real > 0) {
+    return { valor: real, modo: "real" };
+  }
+  const profile = storage.getProfile();
+  return { valor: profile.expectedConsumption, modo: "estimado" };
+}
+
+/** Validate fuel entry: KM must be greater than last entry */
+export function validarAbastecimento(odometer: number): { valid: boolean; message?: string } {
+  const fuelEntries = storage.getFuel();
+  if (fuelEntries.length === 0) return { valid: true };
+  
+  const sorted = [...fuelEntries].sort((a, b) => b.odometer - a.odometer);
+  const lastOdo = sorted[0].odometer;
+  
+  if (odometer <= lastOdo) {
+    return { valid: false, message: `KM deve ser maior que o último abastecimento (${lastOdo.toLocaleString("pt-BR")} km)` };
+  }
+  return { valid: true };
 }

@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, Legend,
 } from "recharts";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo } from "@/lib/storage";
 import { toast } from "sonner";
 
 type Period = "hoje" | "semana" | "mes";
@@ -46,10 +46,11 @@ export default function Reports() {
     const totalExpenses = fuelCost + maintCost + expCost;
     const fuelLiters = ff.reduce((s, f) => s + f.liters, 0);
 
-    // Estimated fuel
+    // Smart consumption: real if available, else expected
+    const consumo = obterConsumoAtivo();
     const avgPrice = getAvgFuelPrice();
-    const estimatedLiters = calcularLitrosGastos(distance, profile.expectedConsumption);
-    const estimatedFuelCost = calcularCustoCombustivel(distance, profile.expectedConsumption, avgPrice);
+    const estimatedLiters = calcularLitrosGastos(distance, consumo.valor);
+    const estimatedFuelCost = calcularCustoCombustivel(distance, consumo.valor, avgPrice);
 
     // Platform breakdown
     const platformMap: Record<string, number> = {};
@@ -131,11 +132,12 @@ export default function Reports() {
     { label: "Manutenção", value: formatCurrency(data.maintCost), color: "text-accent" },
   ];
 
-  const fuelStats = profile.expectedConsumption > 0 ? [
-    { label: "Consumo (km/L)", value: `${profile.expectedConsumption}`, color: "" },
-    { label: "Litros Estim.", value: `${data.estimatedLiters.toFixed(1)}L`, color: "" },
-    { label: "Custo Comb. Estim.", value: formatCurrency(data.estimatedFuelCost), color: "text-warning" },
-    ...(data.kmPerLiter > 0 ? [{ label: "Consumo Real", value: `${data.kmPerLiter.toFixed(1)} km/L`, color: data.kmPerLiter >= profile.expectedConsumption * 0.85 ? "text-success" : "text-destructive" }] : []),
+  const consumo = obterConsumoAtivo();
+  const fuelStats = consumo.valor > 0 ? [
+    { label: `Consumo (${consumo.modo === "real" ? "Real" : "Estim."})`, value: `${consumo.valor.toFixed(1)} km/L`, color: consumo.modo === "real" ? "text-success" : "" },
+    { label: "Litros", value: `${data.estimatedLiters.toFixed(1)}L`, color: "" },
+    { label: "Custo Comb.", value: formatCurrency(data.estimatedFuelCost), color: "text-warning" },
+    ...(consumo.modo === "real" && profile.expectedConsumption > 0 ? [{ label: "Esperado", value: `${profile.expectedConsumption} km/L`, color: "text-muted-foreground" }] : []),
   ] : [];
 
   return (

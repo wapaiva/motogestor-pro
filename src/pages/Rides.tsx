@@ -3,7 +3,7 @@ import { Plus, Trash2, Bike, CalendarIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { storage, Ride, formatCurrency, generateId, calcularCustoCombustivel, calcularLitrosGastos, calcularLucro, getAvgFuelPrice, isConsumptionConfigured } from "@/lib/storage";
+import { storage, Ride, formatCurrency, generateId, calcularCustoCombustivel, calcularLitrosGastos, calcularLucro, getAvgFuelPrice, isConsumptionConfigured, obterConsumoAtivo } from "@/lib/storage";
 import { playHornSound } from "@/lib/sounds";
 import { useNavigate } from "react-router-dom";
 import SourceSelect, { RideSource } from "@/components/SourceSelect";
@@ -34,6 +34,7 @@ export default function Rides() {
   const isMotoRegistered = !!(profile.motoModel && profile.motoYear);
   const hasConsumption = isConsumptionConfigured();
   const avgFuelPrice = getAvgFuelPrice();
+  const consumoAtivo = obterConsumoAtivo();
 
   const handleShowForm = () => {
     if (!isMotoRegistered) {
@@ -258,11 +259,14 @@ export default function Rides() {
                         {r.distance} km •{" "}
                         {new Date(r.date).toLocaleDateString("pt-BR")}
                       </p>
-                      {r.distance > 0 && profile.expectedConsumption > 0 && avgFuelPrice > 0 && (
+                      {r.distance > 0 && consumoAtivo.valor > 0 && avgFuelPrice > 0 && (
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-warning">⛽ {formatCurrency(calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice))}</span>
-                          <span className="text-[10px] text-success">💰 {formatCurrency(calcularLucro(r.amount, calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice)))}</span>
-                          <span className="text-[10px] text-muted-foreground">{calcularLitrosGastos(r.distance, profile.expectedConsumption).toFixed(2)}L</span>
+                          <span className="text-[10px] text-warning">⛽ {formatCurrency(calcularCustoCombustivel(r.distance, consumoAtivo.valor, avgFuelPrice))}</span>
+                          <span className="text-[10px] text-success">💰 {formatCurrency(calcularLucro(r.amount, calcularCustoCombustivel(r.distance, consumoAtivo.valor, avgFuelPrice)))}</span>
+                          <span className="text-[10px] text-muted-foreground">{calcularLitrosGastos(r.distance, consumoAtivo.valor).toFixed(2)}L</span>
+                          <span className={`text-[8px] px-1 py-0.5 rounded ${consumoAtivo.modo === "real" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+                            {consumoAtivo.modo === "real" ? "Real" : "Estimado"}
+                          </span>
                         </div>
                       )}
                     </div>
