@@ -117,6 +117,36 @@ export default function SmartInsights() {
       });
     }
 
+    // Expected vs real consumption insight
+    const totalFuelLiters = fuel.reduce((s, f) => s + f.liters, 0);
+    const totalRideDistance = rides.reduce((s, r) => s + r.distance, 0);
+    if (totalFuelLiters > 0 && totalRideDistance > 0 && profile.expectedConsumption > 0) {
+      const realConsumption = totalRideDistance / totalFuelLiters;
+      const diff = ((profile.expectedConsumption - realConsumption) / profile.expectedConsumption) * 100;
+      if (diff > 15) {
+        result.push({
+          message: `Consumo real (${realConsumption.toFixed(1)} km/L) está ${diff.toFixed(0)}% abaixo do esperado (${profile.expectedConsumption} km/L)`,
+          type: "warning",
+          icon: Fuel,
+        });
+      }
+    }
+
+    // Cost per km alert using expected consumption
+    if (profile.expectedConsumption > 0) {
+      const avgPrice = getAvgFuelPrice();
+      if (avgPrice > 0) {
+        const costPerKm = avgPrice / profile.expectedConsumption;
+        if (costPerKm > 0.5) {
+          result.push({
+            message: `Custo estimado de combustível: ${formatCurrency(costPerKm)}/km`,
+            type: "tip",
+            icon: Fuel,
+          });
+        }
+      }
+    }
+
     if (rides.length >= 7) {
       const dayTotals: Record<number, { total: number; count: number }> = {};
       rides.forEach((r) => {
