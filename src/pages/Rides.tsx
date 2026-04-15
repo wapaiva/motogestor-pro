@@ -268,7 +268,6 @@ export default function Rides() {
                             {consumoAtivo.modo === "real" ? "Real" : "Estimado"}
                           </span>
                         </div>
-                        </div>
                       )}
                     </div>
                     <button
