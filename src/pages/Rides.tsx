@@ -244,7 +244,7 @@ export default function Rides() {
                     key={r.id}
                     className="glass-card rounded-xl p-3 flex items-center justify-between animate-fade-in"
                   >
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-card-foreground">
                           {formatCurrency(r.amount)}
@@ -258,6 +258,13 @@ export default function Rides() {
                         {r.distance} km •{" "}
                         {new Date(r.date).toLocaleDateString("pt-BR")}
                       </p>
+                      {r.distance > 0 && profile.expectedConsumption > 0 && avgFuelPrice > 0 && (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-warning">⛽ {formatCurrency(calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice))}</span>
+                          <span className="text-[10px] text-success">💰 {formatCurrency(calcularLucro(r.amount, calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice)))}</span>
+                          <span className="text-[10px] text-muted-foreground">{calcularLitrosGastos(r.distance, profile.expectedConsumption).toFixed(2)}L</span>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => handleDelete(r.id)}

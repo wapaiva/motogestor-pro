@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import StatCard from "@/components/StatCard";
 import SmartInsights from "@/components/SmartInsights";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice } from "@/lib/storage";
 import { stopSound } from "@/lib/sounds";
 import { Progress } from "@/components/ui/progress";
 import { calculateGamification, getXpProgress, getLevelTitle } from "@/lib/gamification";

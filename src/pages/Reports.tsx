@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, Legend,
 } from "recharts";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice } from "@/lib/storage";
 import { toast } from "sonner";
 
 type Period = "hoje" | "semana" | "mes";
