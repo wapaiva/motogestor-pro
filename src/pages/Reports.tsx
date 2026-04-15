@@ -171,6 +171,21 @@ export default function Reports() {
         ))}
       </div>
 
+      {/* Fuel Efficiency Stats */}
+      {fuelStats.length > 0 && (
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eficiência de Combustível</h3>
+          <div className="grid grid-cols-2 gap-2.5">
+            {fuelStats.map(s => (
+              <div key={s.label} className="premium-card p-3 animate-fade-in hover-lift">
+                <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+                <p className={`text-sm font-bold ${s.color || "text-card-foreground"}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bar Chart */}
       <div className="premium-card p-4 mb-4 animate-fade-in">
         <h3 className="text-sm font-semibold text-card-foreground mb-3">Ganhos vs Gastos</h3>
