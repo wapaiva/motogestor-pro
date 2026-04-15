@@ -31,13 +31,23 @@ export default function Rides() {
   const [showForm, setShowForm] = useState(false);
 
   const profile = storage.getProfile();
-  const isMotoRegistered = !!(profile.motoModel && profile.motoYear && profile.motoPlate);
+  const isMotoRegistered = !!(profile.motoModel && profile.motoYear);
+  const hasConsumption = isConsumptionConfigured();
+  const avgFuelPrice = getAvgFuelPrice();
 
   const handleShowForm = () => {
     if (!isMotoRegistered) {
       toast.error("📋 Cadastro da moto necessário", {
-        description: "Para garantir a precisão das análises, cadastre os dados da sua moto em Perfil → Minha Moto antes de registrar corridas.",
+        description: "Cadastre os dados da sua moto em Perfil → Minha Moto antes de registrar corridas.",
         action: { label: "Ir para Minha Moto", onClick: () => navigate("/perfil", { state: { scrollTo: "minha-moto" } }) },
+        duration: 5000,
+      });
+      return;
+    }
+    if (!hasConsumption) {
+      toast.error("⛽ Consumo (km/L) não informado", {
+        description: "Preencha o consumo da sua moto para calcular custos reais.",
+        action: { label: "Configurar", onClick: () => navigate("/perfil", { state: { scrollTo: "minha-moto" } }) },
         duration: 5000,
       });
       return;
