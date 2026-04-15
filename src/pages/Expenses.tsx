@@ -11,6 +11,8 @@ import {
   FuelEntry,
   MaintenanceEntry,
   Expense,
+  validarAbastecimento,
+  getConsumoReal,
 } from "@/lib/storage";
 import { playHornSound } from "@/lib/sounds";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
