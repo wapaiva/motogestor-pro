@@ -91,11 +91,12 @@ export default function Dashboard() {
     const totalExpenses = fuelCost + maintCost + expCost;
     const fuelLiters = filteredFuel.reduce((s, f) => s + f.liters, 0);
     
-    // Estimated fuel calculations using profile consumption
+    // Smart consumption: use real data if available, else expected
+    const consumo = obterConsumoAtivo();
     const avgPrice = getAvgFuelPrice();
-    const estimatedLiters = calcularLitrosGastos(totalDistance, profile.expectedConsumption);
-    const estimatedFuelCost = calcularCustoCombustivel(totalDistance, profile.expectedConsumption, avgPrice);
-    const costPerKmEstimated = profile.expectedConsumption > 0 && avgPrice > 0 ? avgPrice / profile.expectedConsumption : 0;
+    const estimatedLiters = calcularLitrosGastos(totalDistance, consumo.valor);
+    const estimatedFuelCost = calcularCustoCombustivel(totalDistance, consumo.valor, avgPrice);
+    const costPerKmEstimated = consumo.valor > 0 && avgPrice > 0 ? avgPrice / consumo.valor : 0;
     
     return {
       totalEarnings, totalDistance, totalExpenses, fuelCost, maintCost, expCost,
@@ -111,6 +112,8 @@ export default function Dashboard() {
       estimatedFuelCost,
       costPerKmEstimated,
       estimatedProfit: totalEarnings - estimatedFuelCost - maintCost - expCost,
+      consumoModo: consumo.modo,
+      consumoValor: consumo.valor,
     };
   }, [rides, fuel, maintenance, expenses, period]);
 
@@ -243,12 +246,20 @@ export default function Dashboard() {
         <StatCard label="Margem" value={`${data.profitMargin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`} icon={Percent} gradient={data.profitMargin >= 0 ? "success" : "danger"} negative={data.profitMargin < 0} />
       </div>
 
-      {/* Estimated Fuel Section */}
-      {profile.expectedConsumption > 0 && data.totalDistance > 0 && data.estimatedFuelCost > 0 && (
+      {/* Fuel Consumption Section */}
+      {data.consumoValor > 0 && data.totalDistance > 0 && data.estimatedFuelCost > 0 && (
         <div className="premium-card p-4 mb-5 animate-fade-in hover-lift">
           <h3 className="text-sm font-semibold text-card-foreground flex items-center gap-2 mb-3">
-            <Fuel className="w-4 h-4 text-warning" /> Consumo Estimado ({profile.expectedConsumption} km/L)
+            <Fuel className="w-4 h-4 text-warning" /> Consumo
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${data.consumoModo === "real" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+              {data.consumoModo === "real" ? "📊 Real" : "📐 Estimado"} — {data.consumoValor.toFixed(1)} km/L
+            </span>
           </h3>
+          {data.consumoModo === "estimado" && (
+            <p className="text-[10px] text-muted-foreground mb-2">
+              💡 Adicione 2+ abastecimentos em Gastos → Combustível para ativar o modo real
+            </p>
+          )}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <p className="text-[10px] text-muted-foreground">Litros</p>
@@ -263,16 +274,17 @@ export default function Dashboard() {
               <p className="text-sm font-bold text-card-foreground">{formatCurrency(data.costPerKmEstimated)}</p>
             </div>
           </div>
-          {data.kmPerLiter > 0 && (
+          {data.consumoModo === "real" && profile.expectedConsumption > 0 && (
             <div className="mt-2 bg-primary/5 rounded-lg p-2 border border-primary/10">
               <p className="text-[10px] text-muted-foreground">
-                Consumo real: <span className="font-semibold text-card-foreground">{data.kmPerLiter.toFixed(1)} km/L</span>
-                {data.kmPerLiter < profile.expectedConsumption * 0.85 && (
-                  <span className="text-destructive ml-1">⚠️ Abaixo do esperado</span>
-                )}
-                {data.kmPerLiter >= profile.expectedConsumption * 0.85 && (
-                  <span className="text-success ml-1">✅ Dentro do esperado</span>
-                )}
+                Esperado: <span className="font-semibold">{profile.expectedConsumption} km/L</span> →
+                Real: <span className="font-semibold text-card-foreground">{data.consumoValor.toFixed(1)} km/L</span>
+                {(() => {
+                  const diff = ((profile.expectedConsumption - data.consumoValor) / profile.expectedConsumption) * 100;
+                  if (diff > 15) return <span className="text-destructive ml-1">⚠️ {diff.toFixed(0)}% pior que esperado</span>;
+                  if (diff > 0) return <span className="text-warning ml-1">↓ {diff.toFixed(0)}% abaixo</span>;
+                  return <span className="text-success ml-1">✅ Acima do esperado</span>;
+                })()}
               </p>
             </div>
           )}
