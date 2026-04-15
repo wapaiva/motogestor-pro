@@ -403,4 +403,4 @@ Este projeto é proprietário. Todos os direitos reservados © 2026 WC Tech Labs
 
 ---
 
-* 🏍️ Feito para a comunidade de motoboys e entregadores do Brasil 🇧🇷*
+*Feito para a comunidade de motoboys e entregadores 🏍️ do Brasil 🇧🇷*
