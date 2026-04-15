@@ -106,6 +106,23 @@ export default {
             boxShadow: "0 0 20px 4px hsl(152 60% 45% / 0.15)",
           },
         },
+        "linkedin-enter": {
+          "0%": { opacity: "0", transform: "scale(0.3) translateZ(-100px)" },
+          "60%": { opacity: "1", transform: "scale(1.05)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "linkedin-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.06)", opacity: "0.92" },
+        },
+        "linkedin-glow": {
+          "0%, 100%": { boxShadow: "0 0 30px 8px hsl(var(--primary) / 0.15)", opacity: "0.4" },
+          "50%": { boxShadow: "0 0 60px 20px hsl(var(--primary) / 0.25)", opacity: "0.7" },
+        },
+        "linkedin-exit": {
+          "0%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0", transform: "scale(1.15)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
