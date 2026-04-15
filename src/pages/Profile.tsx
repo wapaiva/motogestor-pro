@@ -175,14 +175,40 @@ export default function Profile() {
 
       {tab === "moto" && (
         <div className="glass-card rounded-xl p-4 animate-fade-in space-y-3">
-          <div><label className={labelClass}>Modelo</label><input value={profile.motoModel} onChange={(e) => setProfile({ ...profile, motoModel: e.target.value })} className={inputClass} placeholder="Ex: Honda CG 160" /></div>
-          <div><label className={labelClass}>Ano</label><input value={profile.motoYear} onChange={(e) => setProfile({ ...profile, motoYear: e.target.value })} className={inputClass} placeholder="Ex: 2023" /></div>
+          <div>
+            <label className={labelClass}>Modelo <span className="text-destructive">*</span></label>
+            <input value={profile.motoModel} onChange={(e) => setProfile({ ...profile, motoModel: e.target.value })} className={inputClass} placeholder="Ex: Honda CG 160" />
+            {!profile.motoModel && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Ano <span className="text-destructive">*</span></label>
+            <input value={profile.motoYear} onChange={(e) => setProfile({ ...profile, motoYear: e.target.value })} className={inputClass} placeholder="Ex: 2023" />
+            {!profile.motoYear && <p className="text-[10px] text-destructive mt-0.5">Campo obrigatório</p>}
+          </div>
           <div><label className={labelClass}>Placa (opcional)</label><input value={profile.motoPlate} onChange={(e) => setProfile({ ...profile, motoPlate: e.target.value })} className={inputClass} placeholder="ABC-1234" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className={labelClass}>KM Atual</label><input type="number" value={profile.currentKm || ""} onChange={(e) => setProfile({ ...profile, currentKm: e.target.value === "" ? 0 : parseFloat(e.target.value) })} className={inputClass} placeholder="0" /></div>
-            <div><label className={labelClass}>Consumo Esperado (km/L)</label><input type="number" value={profile.expectedConsumption || ""} onChange={(e) => setProfile({ ...profile, expectedConsumption: e.target.value === "" ? 0 : parseFloat(e.target.value) })} className={inputClass} placeholder="0" /></div>
+            <div>
+              <label className={labelClass}>KM Atual <span className="text-destructive">*</span></label>
+              <input type="number" value={profile.currentKm || ""} onChange={(e) => setProfile({ ...profile, currentKm: e.target.value === "" ? 0 : parseFloat(e.target.value) })} className={inputClass} placeholder="0" />
+            </div>
+            <div>
+              <label className={labelClass}>Consumo (km/L) <span className="text-destructive">*</span></label>
+              <input type="number" value={profile.expectedConsumption || ""} onChange={(e) => setProfile({ ...profile, expectedConsumption: e.target.value === "" ? 0 : parseFloat(e.target.value) })} className={inputClass} placeholder="0" />
+              <p className="text-[10px] text-muted-foreground mt-0.5">Informe quantos km sua moto faz por litro</p>
+              {profile.expectedConsumption <= 0 && <p className="text-[10px] text-destructive mt-0.5">Deve ser maior que zero</p>}
+            </div>
           </div>
-          <button onClick={saveProfile} className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-semibold text-sm">Salvar</button>
+          {profile.expectedConsumption > 0 && (
+            <div className="bg-primary/5 rounded-lg p-2.5 border border-primary/10">
+              <p className="text-[10px] text-muted-foreground">Custo estimado por km: <span className="font-semibold text-card-foreground">{(() => { const fuel = storage.getFuel(); if (fuel.length === 0) return "Cadastre abastecimentos"; const recent = [...fuel].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5); const avgPrice = recent.reduce((s, f) => s + (f.amount / f.liters), 0) / recent.length; return formatCurrency(avgPrice / profile.expectedConsumption) + "/km"; })()}</span></p>
+            </div>
+          )}
+          <button onClick={() => {
+            if (!profile.motoModel.trim()) { toast.error("Informe o modelo da moto"); return; }
+            if (!profile.motoYear.trim()) { toast.error("Informe o ano da moto"); return; }
+            if (profile.expectedConsumption <= 0) { toast.error("Consumo (km/L) deve ser maior que zero"); return; }
+            saveProfile();
+          }} className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-semibold text-sm">Salvar</button>
         </div>
       )}
 

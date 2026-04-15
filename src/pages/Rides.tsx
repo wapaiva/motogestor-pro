@@ -3,7 +3,7 @@ import { Plus, Trash2, Bike, CalendarIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { storage, Ride, formatCurrency, generateId } from "@/lib/storage";
+import { storage, Ride, formatCurrency, generateId, calcularCustoCombustivel, calcularLitrosGastos, calcularLucro, getAvgFuelPrice, isConsumptionConfigured } from "@/lib/storage";
 import { playHornSound } from "@/lib/sounds";
 import { useNavigate } from "react-router-dom";
 import SourceSelect, { RideSource } from "@/components/SourceSelect";
