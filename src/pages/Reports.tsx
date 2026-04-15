@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, Legend,
 } from "recharts";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice } from "@/lib/storage";
 import { toast } from "sonner";
 
 type Period = "hoje" | "semana" | "mes";
@@ -29,6 +29,7 @@ export default function Reports() {
   const fuel = storage.getFuel();
   const maint = storage.getMaintenance();
   const exp = storage.getExpenses();
+  const profile = storage.getProfile();
 
   const filterFn = period === "hoje" ? isToday : period === "semana" ? isThisWeek : isThisMonth;
 
@@ -44,6 +45,11 @@ export default function Reports() {
     const expCost = fe.reduce((s, e) => s + e.amount, 0);
     const totalExpenses = fuelCost + maintCost + expCost;
     const fuelLiters = ff.reduce((s, f) => s + f.liters, 0);
+
+    // Estimated fuel
+    const avgPrice = getAvgFuelPrice();
+    const estimatedLiters = calcularLitrosGastos(distance, profile.expectedConsumption);
+    const estimatedFuelCost = calcularCustoCombustivel(distance, profile.expectedConsumption, avgPrice);
 
     // Platform breakdown
     const platformMap: Record<string, number> = {};
@@ -66,6 +72,8 @@ export default function Reports() {
       profitMargin: earnings > 0 ? ((earnings - totalExpenses) / earnings) * 100 : 0,
       fuelLiters,
       kmPerLiter: fuelLiters > 0 ? distance / fuelLiters : 0,
+      estimatedLiters,
+      estimatedFuelCost,
       platformData: Object.entries(platformMap).map(([name, value]) => ({ name, value })),
       bestDay: bestDay ? bestDay[0] : "—",
       bestDayAmount: bestDay ? bestDay[1] : 0,
@@ -123,6 +131,13 @@ export default function Reports() {
     { label: "Manutenção", value: formatCurrency(data.maintCost), color: "text-accent" },
   ];
 
+  const fuelStats = profile.expectedConsumption > 0 ? [
+    { label: "Consumo (km/L)", value: `${profile.expectedConsumption}`, color: "" },
+    { label: "Litros Estim.", value: `${data.estimatedLiters.toFixed(1)}L`, color: "" },
+    { label: "Custo Comb. Estim.", value: formatCurrency(data.estimatedFuelCost), color: "text-warning" },
+    ...(data.kmPerLiter > 0 ? [{ label: "Consumo Real", value: `${data.kmPerLiter.toFixed(1)} km/L`, color: data.kmPerLiter >= profile.expectedConsumption * 0.85 ? "text-success" : "text-destructive" }] : []),
+  ] : [];
+
   return (
     <div className="pb-24 px-4 pt-4 max-w-lg mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -155,6 +170,21 @@ export default function Reports() {
           </div>
         ))}
       </div>
+
+      {/* Fuel Efficiency Stats */}
+      {fuelStats.length > 0 && (
+        <div className="mb-5">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eficiência de Combustível</h3>
+          <div className="grid grid-cols-2 gap-2.5">
+            {fuelStats.map(s => (
+              <div key={s.label} className="premium-card p-3 animate-fade-in hover-lift">
+                <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+                <p className={`text-sm font-bold ${s.color || "text-card-foreground"}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Bar Chart */}
       <div className="premium-card p-4 mb-4 animate-fade-in">

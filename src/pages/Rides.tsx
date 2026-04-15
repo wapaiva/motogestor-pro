@@ -3,7 +3,7 @@ import { Plus, Trash2, Bike, CalendarIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { storage, Ride, formatCurrency, generateId } from "@/lib/storage";
+import { storage, Ride, formatCurrency, generateId, calcularCustoCombustivel, calcularLitrosGastos, calcularLucro, getAvgFuelPrice, isConsumptionConfigured } from "@/lib/storage";
 import { playHornSound } from "@/lib/sounds";
 import { useNavigate } from "react-router-dom";
 import SourceSelect, { RideSource } from "@/components/SourceSelect";
@@ -31,13 +31,23 @@ export default function Rides() {
   const [showForm, setShowForm] = useState(false);
 
   const profile = storage.getProfile();
-  const isMotoRegistered = !!(profile.motoModel && profile.motoYear && profile.motoPlate);
+  const isMotoRegistered = !!(profile.motoModel && profile.motoYear);
+  const hasConsumption = isConsumptionConfigured();
+  const avgFuelPrice = getAvgFuelPrice();
 
   const handleShowForm = () => {
     if (!isMotoRegistered) {
       toast.error("📋 Cadastro da moto necessário", {
-        description: "Para garantir a precisão das análises, cadastre os dados da sua moto em Perfil → Minha Moto antes de registrar corridas.",
+        description: "Cadastre os dados da sua moto em Perfil → Minha Moto antes de registrar corridas.",
         action: { label: "Ir para Minha Moto", onClick: () => navigate("/perfil", { state: { scrollTo: "minha-moto" } }) },
+        duration: 5000,
+      });
+      return;
+    }
+    if (!hasConsumption) {
+      toast.error("⛽ Consumo (km/L) não informado", {
+        description: "Preencha o consumo da sua moto para calcular custos reais.",
+        action: { label: "Configurar", onClick: () => navigate("/perfil", { state: { scrollTo: "minha-moto" } }) },
         duration: 5000,
       });
       return;
@@ -234,7 +244,7 @@ export default function Rides() {
                     key={r.id}
                     className="glass-card rounded-xl p-3 flex items-center justify-between animate-fade-in"
                   >
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-card-foreground">
                           {formatCurrency(r.amount)}
@@ -248,6 +258,13 @@ export default function Rides() {
                         {r.distance} km •{" "}
                         {new Date(r.date).toLocaleDateString("pt-BR")}
                       </p>
+                      {r.distance > 0 && profile.expectedConsumption > 0 && avgFuelPrice > 0 && (
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-warning">⛽ {formatCurrency(calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice))}</span>
+                          <span className="text-[10px] text-success">💰 {formatCurrency(calcularLucro(r.amount, calcularCustoCombustivel(r.distance, profile.expectedConsumption, avgFuelPrice)))}</span>
+                          <span className="text-[10px] text-muted-foreground">{calcularLitrosGastos(r.distance, profile.expectedConsumption).toFixed(2)}L</span>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => handleDelete(r.id)}

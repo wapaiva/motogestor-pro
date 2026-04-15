@@ -157,3 +157,38 @@ export function isThisMonth(dateStr: string) {
   const now = new Date();
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
+
+// === Fuel calculation utilities ===
+
+/** Calculate fuel cost for a given distance */
+export function calcularCustoCombustivel(distanciaKm: number, consumoKmL: number, precoCombustivel: number): number {
+  if (consumoKmL <= 0) return 0;
+  return (distanciaKm / consumoKmL) * precoCombustivel;
+}
+
+/** Calculate liters consumed for a given distance */
+export function calcularLitrosGastos(distanciaKm: number, consumoKmL: number): number {
+  if (consumoKmL <= 0) return 0;
+  return distanciaKm / consumoKmL;
+}
+
+/** Calculate net profit after fuel cost */
+export function calcularLucro(valorCorrida: number, custoCombustivel: number): number {
+  return valorCorrida - custoCombustivel;
+}
+
+/** Get average fuel price from recent refueling entries */
+export function getAvgFuelPrice(): number {
+  const fuelEntries = storage.getFuel();
+  if (fuelEntries.length === 0) return 0;
+  // Sort by date desc and take last 5 entries for avg
+  const recent = [...fuelEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  const totalPrice = recent.reduce((sum, f) => sum + (f.amount / f.liters), 0);
+  return totalPrice / recent.length;
+}
+
+/** Check if moto consumption is properly configured */
+export function isConsumptionConfigured(): boolean {
+  const profile = storage.getProfile();
+  return profile.expectedConsumption > 0;
+}

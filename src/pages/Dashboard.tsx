@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import StatCard from "@/components/StatCard";
 import SmartInsights from "@/components/SmartInsights";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice } from "@/lib/storage";
 import { stopSound } from "@/lib/sounds";
 import { Progress } from "@/components/ui/progress";
 import { calculateGamification, getXpProgress, getLevelTitle } from "@/lib/gamification";
@@ -90,6 +90,13 @@ export default function Dashboard() {
     const expCost = filteredExp.reduce((s, e) => s + e.amount, 0);
     const totalExpenses = fuelCost + maintCost + expCost;
     const fuelLiters = filteredFuel.reduce((s, f) => s + f.liters, 0);
+    
+    // Estimated fuel calculations using profile consumption
+    const avgPrice = getAvgFuelPrice();
+    const estimatedLiters = calcularLitrosGastos(totalDistance, profile.expectedConsumption);
+    const estimatedFuelCost = calcularCustoCombustivel(totalDistance, profile.expectedConsumption, avgPrice);
+    const costPerKmEstimated = profile.expectedConsumption > 0 && avgPrice > 0 ? avgPrice / profile.expectedConsumption : 0;
+    
     return {
       totalEarnings, totalDistance, totalExpenses, fuelCost, maintCost, expCost,
       profit: totalEarnings - totalExpenses,
@@ -100,6 +107,10 @@ export default function Dashboard() {
       profitMargin: totalEarnings > 0 ? ((totalEarnings - totalExpenses) / totalEarnings) * 100 : 0,
       fuelLiters,
       kmPerLiter: fuelLiters > 0 ? totalDistance / fuelLiters : 0,
+      estimatedLiters,
+      estimatedFuelCost,
+      costPerKmEstimated,
+      estimatedProfit: totalEarnings - estimatedFuelCost - maintCost - expCost,
     };
   }, [rides, fuel, maintenance, expenses, period]);
 
@@ -231,6 +242,42 @@ export default function Dashboard() {
         <StatCard label="Média/Corrida" value={formatCurrency(data.avgPerRide)} icon={Clock} gradient="success" />
         <StatCard label="Margem" value={`${data.profitMargin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`} icon={Percent} gradient={data.profitMargin >= 0 ? "success" : "danger"} negative={data.profitMargin < 0} />
       </div>
+
+      {/* Estimated Fuel Section */}
+      {profile.expectedConsumption > 0 && data.totalDistance > 0 && data.estimatedFuelCost > 0 && (
+        <div className="premium-card p-4 mb-5 animate-fade-in hover-lift">
+          <h3 className="text-sm font-semibold text-card-foreground flex items-center gap-2 mb-3">
+            <Fuel className="w-4 h-4 text-warning" /> Consumo Estimado ({profile.expectedConsumption} km/L)
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-secondary/50 rounded-lg p-2 text-center">
+              <p className="text-[10px] text-muted-foreground">Litros</p>
+              <p className="text-sm font-bold text-card-foreground">{data.estimatedLiters.toFixed(1)}L</p>
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-2 text-center">
+              <p className="text-[10px] text-muted-foreground">Custo Comb.</p>
+              <p className="text-sm font-bold text-warning">{formatCurrency(data.estimatedFuelCost)}</p>
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-2 text-center">
+              <p className="text-[10px] text-muted-foreground">R$/km</p>
+              <p className="text-sm font-bold text-card-foreground">{formatCurrency(data.costPerKmEstimated)}</p>
+            </div>
+          </div>
+          {data.kmPerLiter > 0 && (
+            <div className="mt-2 bg-primary/5 rounded-lg p-2 border border-primary/10">
+              <p className="text-[10px] text-muted-foreground">
+                Consumo real: <span className="font-semibold text-card-foreground">{data.kmPerLiter.toFixed(1)} km/L</span>
+                {data.kmPerLiter < profile.expectedConsumption * 0.85 && (
+                  <span className="text-destructive ml-1">⚠️ Abaixo do esperado</span>
+                )}
+                {data.kmPerLiter >= profile.expectedConsumption * 0.85 && (
+                  <span className="text-success ml-1">✅ Dentro do esperado</span>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Platform Earnings */}
       {earningsByPlatform.length > 0 && (
