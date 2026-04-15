@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef } from "react";
 import { AlertTriangle, TrendingDown, Fuel, Wrench, Zap, BarChart3 } from "lucide-react";
-import { storage, formatCurrency, isThisWeek, isThisMonth, isToday } from "@/lib/storage";
+import { storage, formatCurrency, isThisWeek, isThisMonth, isToday, getAvgFuelPrice } from "@/lib/storage";
 import { playAlertSound } from "@/lib/sounds";
 
 interface Insight {
