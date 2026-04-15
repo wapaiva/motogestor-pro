@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import ConsentDialog from "@/components/ConsentDialog";
 import Onboarding from "@/components/Onboarding";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import SplashScreen from "@/components/SplashScreen";
 import Dashboard from "@/pages/Dashboard";
 import Rides from "@/pages/Rides";
 import Expenses from "@/pages/Expenses";
@@ -55,15 +56,22 @@ function AppContent() {
 }
 
 const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     applyTheme(getThemeMode());
+  }, []);
+
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sonner position="top-center" closeButton={true} swipeDirections={["left", "right"]} />
+        <Sonner position="top-center" closeButton={false} swipeDirections={["left", "right"]} />
         <BrowserRouter>
+          {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
           <AppContent />
         </BrowserRouter>
       </TooltipProvider>
