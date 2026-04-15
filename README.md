@@ -393,7 +393,7 @@ Consulte o arquivo **[GUIA-PUBLICACAO-PLAY-STORE.md](./GUIA-PUBLICACAO-PLAY-STOR
 **WC Tech Labs**
 
 - GitHub: [@wapaiva]([https://github.com/wapaiva])
-- E-mail: suporte.motogestorpro@gmail.com
+- E-mail: wctechlabs@gmail.com
 
 ---
 
