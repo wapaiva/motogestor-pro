@@ -138,7 +138,6 @@ export default function PrivacyPolicy() {
 
         <div className="border-t border-border pt-3 space-y-1">
           <p className="text-xs text-card-foreground font-medium">Desenvolvedor: {DEV_NAME}</p>
-          <p className="text-xs text-muted-foreground">CNPJ/Responsável: WC Tech Labs</p>
           <p className="text-xs text-muted-foreground">Contato: <span className="text-primary font-medium">{SUPPORT_EMAIL}</span></p>
         </div>
       </div>
