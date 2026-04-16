@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Eye, EyeOff, Bike } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { playMotoSound } from "@/lib/sounds";
+import { useAuth } from "@/context/AuthProvider";
 import {
-  isFirebaseConfigured,
   loginWithEmail,
   registerWithEmail,
   loginWithGoogle,
 } from "@/lib/firebase";
+import { syncFromFirestore, migrateLocalToFirestore } from "@/lib/firestore";
 import logo from "@/assets/logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { enterAsGuest } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -20,20 +22,29 @@ export default function Login() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const firebaseReady = isFirebaseConfigured();
-
-  const saveLocalUser = (userData: { email: string; name: string }) => {
-    localStorage.setItem("user", JSON.stringify(userData));
-  };
-
   const enterApp = () => {
     playMotoSound();
     setTimeout(() => navigate("/"), 400);
   };
 
-  const enterAsGuest = () => {
-    localStorage.setItem("guest", "true");
+  const handleEnterAsGuest = () => {
+    enterAsGuest();
     enterApp();
+  };
+
+  const syncUserData = async (uid: string) => {
+    try {
+      // If user has local data, migrate to Firestore
+      const { storage } = await import("@/lib/storage");
+      const localRides = storage.getRides();
+      if (localRides.length > 0) {
+        await migrateLocalToFirestore(uid);
+      }
+      // Then sync from Firestore to localStorage
+      await syncFromFirestore(uid);
+    } catch (err) {
+      console.error("Sync error:", err);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,58 +53,42 @@ export default function Login() {
     if (!isLogin && !name) { toast.error("Informe seu nome"); return; }
 
     setLoading(true);
-
-    if (firebaseReady) {
-      try {
-        if (isLogin) {
-          const cred = await loginWithEmail(email, password);
-          saveLocalUser({ email: cred.user.email || email, name: cred.user.displayName || "" });
-        } else {
-          const cred = await registerWithEmail(email, password, name);
-          saveLocalUser({ email: cred.user.email || email, name });
-        }
-        toast.success("Bem-vindo ao MotoGestor Pro!");
-        enterApp();
-      } catch (err: any) {
-        const code = err?.code || "";
-        if (code === "auth/user-not-found") toast.error("Usuário não encontrado");
-        else if (code === "auth/wrong-password") toast.error("Senha incorreta");
-        else if (code === "auth/email-already-in-use") toast.error("E-mail já cadastrado");
-        else if (code === "auth/weak-password") toast.error("Senha muito fraca (mín. 6 caracteres)");
-        else if (code === "auth/invalid-email") toast.error("E-mail inválido");
-        else toast.error("Erro na autenticação. Tente novamente.");
+    try {
+      if (isLogin) {
+        const cred = await loginWithEmail(email, password);
+        await syncUserData(cred.user.uid);
+      } else {
+        const cred = await registerWithEmail(email, password, name);
+        await syncUserData(cred.user.uid);
       }
-    } else {
-      // Fallback: local-only mode
-      setTimeout(() => {
-        saveLocalUser({ email, name: name || "Usuário" });
-        toast.success("Bem-vindo ao MotoGestor Pro!");
-        enterApp();
-      }, 800);
+      toast.success("Bem-vindo ao MotoGestor Pro!");
+      enterApp();
+    } catch (err: any) {
+      const code = err?.code || "";
+      if (code === "auth/user-not-found") toast.error("Usuário não encontrado");
+      else if (code === "auth/wrong-password") toast.error("Senha incorreta");
+      else if (code === "auth/email-already-in-use") toast.error("E-mail já cadastrado");
+      else if (code === "auth/weak-password") toast.error("Senha muito fraca (mín. 6 caracteres)");
+      else if (code === "auth/invalid-email") toast.error("E-mail inválido");
+      else if (code === "auth/invalid-credential") toast.error("E-mail ou senha incorretos");
+      else toast.error("Erro na autenticação. Tente novamente.");
     }
-
     setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
-    if (firebaseReady) {
-      try {
-        setLoading(true);
-        const cred = await loginWithGoogle();
-        saveLocalUser({ email: cred.user.email || "", name: cred.user.displayName || "Usuário Google" });
-        toast.success("Login com Google realizado!");
-        enterApp();
-      } catch (err: any) {
-        if (err?.code !== "auth/popup-closed-by-user") {
-          toast.error("Erro no login com Google");
-        }
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      saveLocalUser({ email: "google@user.com", name: "Usuário Google" });
-      toast.success("Login com Google realizado");
+    try {
+      setLoading(true);
+      const cred = await loginWithGoogle();
+      await syncUserData(cred.user.uid);
+      toast.success("Login com Google realizado!");
       enterApp();
+    } catch (err: any) {
+      if (err?.code !== "auth/popup-closed-by-user") {
+        toast.error("Erro no login com Google");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
