@@ -28,6 +28,7 @@ const serviceTypes = [
 
 
 export default function Rides() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [rides, setRides] = useState(storage.getRides());
   const [showForm, setShowForm] = useState(false);
