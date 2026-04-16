@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Bike, CalendarIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -7,6 +7,8 @@ import { storage, Ride, formatCurrency, generateId, calcularCustoCombustivel, ca
 import { playHornSound } from "@/lib/sounds";
 import { useNavigate } from "react-router-dom";
 import SourceSelect, { RideSource } from "@/components/SourceSelect";
+import { useAuth } from "@/context/AuthProvider";
+import { addRideToFirestore, deleteRideFromFirestore } from "@/lib/firestore";
 import {
   Popover,
   PopoverContent,
@@ -26,7 +28,7 @@ const serviceTypes = [
 
 
 export default function Rides() {
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [rides, setRides] = useState(storage.getRides());
   const [showForm, setShowForm] = useState(false);
 
@@ -81,6 +83,7 @@ export default function Rides() {
       notes,
     };
     storage.addRide(ride);
+    if (user) addRideToFirestore(user.uid, ride).catch(console.error);
     setRides(storage.getRides());
     setAmount("");
     setDistance("");
@@ -94,6 +97,7 @@ export default function Rides() {
 
   const handleDelete = (id: string) => {
     storage.deleteRide(id);
+    if (user) deleteRideFromFirestore(user.uid, id).catch(console.error);
     setRides(storage.getRides());
     toast.success("Registro removido");
   };
