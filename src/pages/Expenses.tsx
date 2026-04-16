@@ -127,7 +127,9 @@ export default function Expenses() {
     const validation = validarAbastecimento(odo);
     if (!validation.valid) { toast.error(validation.message!); return; }
 
-    storage.addFuel({ id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType });
+    const entry: FuelEntry = { id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType };
+    storage.addFuel(entry);
+    if (user) addFuelToFirestore(user.uid, entry).catch(console.error);
     setFuel(storage.getFuel());
     setFuelAmount(""); setFuelLiters(""); setFuelOdo(""); setFuelDate(new Date());
     setShowForm(false); playHornSound();
@@ -145,7 +147,9 @@ export default function Expenses() {
       toast.error("Preencha todos os campos: valor e KM atual.");
       return;
     }
-    storage.addMaintenance({ id: generateId(), date: maintDate.toISOString(), type: maintType, amount: parseFloat(maintAmount), odometer: parseFloat(maintOdo) || 0, notes: maintNotes });
+    const entry: MaintenanceEntry = { id: generateId(), date: maintDate.toISOString(), type: maintType, amount: parseFloat(maintAmount), odometer: parseFloat(maintOdo) || 0, notes: maintNotes };
+    storage.addMaintenance(entry);
+    if (user) addMaintenanceToFirestore(user.uid, entry).catch(console.error);
     setMaint(storage.getMaintenance());
     setMaintAmount(""); setMaintOdo(""); setMaintNotes(""); setMaintDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Manutenção registrada!");
@@ -156,7 +160,9 @@ export default function Expenses() {
       toast.error("Preencha todos os campos: valor e descrição.");
       return;
     }
-    storage.addExpense({ id: generateId(), date: expDate.toISOString(), category: expCat, amount: parseFloat(expAmount), description: expDesc });
+    const entry: Expense = { id: generateId(), date: expDate.toISOString(), category: expCat, amount: parseFloat(expAmount), description: expDesc };
+    storage.addExpense(entry);
+    if (user) addExpenseToFirestore(user.uid, entry).catch(console.error);
     setExp(storage.getExpenses());
     setExpAmount(""); setExpDesc(""); setExpDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Despesa registrada!");
