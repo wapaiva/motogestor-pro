@@ -17,6 +17,12 @@ import {
 import { playHornSound } from "@/lib/sounds";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useAuth } from "@/context/AuthProvider";
+import {
+  addFuelToFirestore, deleteFuelFromFirestore,
+  addMaintenanceToFirestore, deleteMaintenanceFromFirestore,
+  addExpenseToFirestore, deleteExpenseFromFirestore,
+} from "@/lib/firestore";
 
 type Tab = "combustivel" | "manutencao" | "extras";
 
@@ -65,6 +71,7 @@ function groupByMonth<T extends { date: string }>(items: T[]): Record<string, T[
 
 export default function Expenses() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("combustivel");
   const [fuel, setFuel] = useState(storage.getFuel());
   const [maint, setMaint] = useState(storage.getMaintenance());
