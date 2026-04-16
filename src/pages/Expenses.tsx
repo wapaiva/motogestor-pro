@@ -227,7 +227,7 @@ export default function Expenses() {
                     <span className="text-sm font-semibold text-card-foreground">{formatCurrency(f.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{f.liters}L {f.fuelType} • {f.odometer} km • {new Date(f.date).toLocaleDateString("pt-BR")}</p>
                   </div>
-                  <button onClick={() => { storage.deleteFuel(f.id); setFuel(storage.getFuel()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteFuel(f.id); if (user) deleteFuelFromFirestore(user.uid, f.id).catch(console.error); setFuel(storage.getFuel()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -268,7 +268,7 @@ export default function Expenses() {
                 <div key={m.id} className="glass-card rounded-xl p-3 mb-2 flex justify-between items-center animate-fade-in">
                   <div><span className="text-sm font-semibold text-card-foreground">{formatCurrency(m.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{m.type} • {m.odometer} km • {new Date(m.date).toLocaleDateString("pt-BR")}</p></div>
-                  <button onClick={() => { storage.deleteMaintenance(m.id); setMaint(storage.getMaintenance()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteMaintenance(m.id); if (user) deleteMaintenanceFromFirestore(user.uid, m.id).catch(console.error); setMaint(storage.getMaintenance()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -304,7 +304,7 @@ export default function Expenses() {
                 <div key={e.id} className="glass-card rounded-xl p-3 mb-2 flex justify-between items-center animate-fade-in">
                   <div><span className="text-sm font-semibold text-card-foreground">{formatCurrency(e.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{expenseCategories.find((c) => c.value === e.category)?.label} • {e.description} • {new Date(e.date).toLocaleDateString("pt-BR")}</p></div>
-                  <button onClick={() => { storage.deleteExpense(e.id); setExp(storage.getExpenses()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteExpense(e.id); if (user) deleteExpenseFromFirestore(user.uid, e.id).catch(console.error); setExp(storage.getExpenses()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
