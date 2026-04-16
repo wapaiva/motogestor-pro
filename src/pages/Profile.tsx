@@ -6,6 +6,8 @@ import { storage, UserProfile, Goals, formatCurrency } from "@/lib/storage";
 import { playSuccessSound } from "@/lib/sounds";
 import ThemeToggle from "@/components/ThemeToggle";
 import logo from "@/assets/logo.png";
+import { useAuth } from "@/context/AuthProvider";
+import { saveProfileToFirestore, saveGoalsToFirestore } from "@/lib/firestore";
 import {
   requestNotificationPermission,
   getNotificationSettings,
@@ -71,6 +73,7 @@ function NotificationToggles() {
 export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout: authLogout } = useAuth();
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
   const [goals, setGoals] = useState<Goals>(storage.getGoals());
   const [tab, setTab] = useState<"dados" | "moto" | "metas" | "notificacoes" | "backup" | "sobre">("dados");
@@ -83,8 +86,18 @@ export default function Profile() {
     }
   }, [location.state]);
 
-  const saveProfile = () => { storage.saveProfile(profile); playSuccessSound(); toast.success("Dados atualizados com sucesso"); };
-  const saveGoals = () => { storage.saveGoals(goals); playSuccessSound(); toast.success("Metas salvas com sucesso"); };
+  const saveProfile = () => {
+    storage.saveProfile(profile);
+    if (user) saveProfileToFirestore(user.uid, profile).catch(console.error);
+    playSuccessSound();
+    toast.success("Dados atualizados com sucesso");
+  };
+  const saveGoals = () => {
+    storage.saveGoals(goals);
+    if (user) saveGoalsToFirestore(user.uid, goals).catch(console.error);
+    playSuccessSound();
+    toast.success("Metas salvas com sucesso");
+  };
 
   const copyEmail = async () => {
     try { await navigator.clipboard.writeText(SUPPORT_EMAIL); playSuccessSound(); toast.success("E-mail copiado!"); }
@@ -132,12 +145,11 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm("Deseja realmente sair do aplicativo?")) {
-      localStorage.removeItem("user");
-      localStorage.removeItem("guest");
+      await authLogout();
       toast.success("Você saiu do aplicativo. Até breve!");
-      setTimeout(() => navigate("/login"), 800);
+      setTimeout(() => navigate("/login"), 400);
     }
   };
 

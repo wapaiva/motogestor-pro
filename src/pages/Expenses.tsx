@@ -17,6 +17,12 @@ import {
 import { playHornSound } from "@/lib/sounds";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useAuth } from "@/context/AuthProvider";
+import {
+  addFuelToFirestore, deleteFuelFromFirestore,
+  addMaintenanceToFirestore, deleteMaintenanceFromFirestore,
+  addExpenseToFirestore, deleteExpenseFromFirestore,
+} from "@/lib/firestore";
 
 type Tab = "combustivel" | "manutencao" | "extras";
 
@@ -65,6 +71,7 @@ function groupByMonth<T extends { date: string }>(items: T[]): Record<string, T[
 
 export default function Expenses() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("combustivel");
   const [fuel, setFuel] = useState(storage.getFuel());
   const [maint, setMaint] = useState(storage.getMaintenance());
@@ -120,7 +127,9 @@ export default function Expenses() {
     const validation = validarAbastecimento(odo);
     if (!validation.valid) { toast.error(validation.message!); return; }
 
-    storage.addFuel({ id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType });
+    const entry: FuelEntry = { id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType };
+    storage.addFuel(entry);
+    if (user) addFuelToFirestore(user.uid, entry).catch(console.error);
     setFuel(storage.getFuel());
     setFuelAmount(""); setFuelLiters(""); setFuelOdo(""); setFuelDate(new Date());
     setShowForm(false); playHornSound();
@@ -138,7 +147,9 @@ export default function Expenses() {
       toast.error("Preencha todos os campos: valor e KM atual.");
       return;
     }
-    storage.addMaintenance({ id: generateId(), date: maintDate.toISOString(), type: maintType, amount: parseFloat(maintAmount), odometer: parseFloat(maintOdo) || 0, notes: maintNotes });
+    const entry: MaintenanceEntry = { id: generateId(), date: maintDate.toISOString(), type: maintType, amount: parseFloat(maintAmount), odometer: parseFloat(maintOdo) || 0, notes: maintNotes };
+    storage.addMaintenance(entry);
+    if (user) addMaintenanceToFirestore(user.uid, entry).catch(console.error);
     setMaint(storage.getMaintenance());
     setMaintAmount(""); setMaintOdo(""); setMaintNotes(""); setMaintDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Manutenção registrada!");
@@ -149,7 +160,9 @@ export default function Expenses() {
       toast.error("Preencha todos os campos: valor e descrição.");
       return;
     }
-    storage.addExpense({ id: generateId(), date: expDate.toISOString(), category: expCat, amount: parseFloat(expAmount), description: expDesc });
+    const entry: Expense = { id: generateId(), date: expDate.toISOString(), category: expCat, amount: parseFloat(expAmount), description: expDesc };
+    storage.addExpense(entry);
+    if (user) addExpenseToFirestore(user.uid, entry).catch(console.error);
     setExp(storage.getExpenses());
     setExpAmount(""); setExpDesc(""); setExpDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Despesa registrada!");
@@ -214,7 +227,7 @@ export default function Expenses() {
                     <span className="text-sm font-semibold text-card-foreground">{formatCurrency(f.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{f.liters}L {f.fuelType} • {f.odometer} km • {new Date(f.date).toLocaleDateString("pt-BR")}</p>
                   </div>
-                  <button onClick={() => { storage.deleteFuel(f.id); setFuel(storage.getFuel()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteFuel(f.id); if (user) deleteFuelFromFirestore(user.uid, f.id).catch(console.error); setFuel(storage.getFuel()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -255,7 +268,7 @@ export default function Expenses() {
                 <div key={m.id} className="glass-card rounded-xl p-3 mb-2 flex justify-between items-center animate-fade-in">
                   <div><span className="text-sm font-semibold text-card-foreground">{formatCurrency(m.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{m.type} • {m.odometer} km • {new Date(m.date).toLocaleDateString("pt-BR")}</p></div>
-                  <button onClick={() => { storage.deleteMaintenance(m.id); setMaint(storage.getMaintenance()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteMaintenance(m.id); if (user) deleteMaintenanceFromFirestore(user.uid, m.id).catch(console.error); setMaint(storage.getMaintenance()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -291,7 +304,7 @@ export default function Expenses() {
                 <div key={e.id} className="glass-card rounded-xl p-3 mb-2 flex justify-between items-center animate-fade-in">
                   <div><span className="text-sm font-semibold text-card-foreground">{formatCurrency(e.amount)}</span>
                     <p className="text-[10px] text-muted-foreground">{expenseCategories.find((c) => c.value === e.category)?.label} • {e.description} • {new Date(e.date).toLocaleDateString("pt-BR")}</p></div>
-                  <button onClick={() => { storage.deleteExpense(e.id); setExp(storage.getExpenses()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => { storage.deleteExpense(e.id); if (user) deleteExpenseFromFirestore(user.uid, e.id).catch(console.error); setExp(storage.getExpenses()); toast.success("Removido"); }} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
