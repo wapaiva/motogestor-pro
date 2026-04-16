@@ -8,6 +8,7 @@ import ConsentDialog from "@/components/ConsentDialog";
 import Onboarding from "@/components/Onboarding";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SplashScreen from "@/components/SplashScreen";
+import AuthProvider from "@/context/AuthProvider";
 import Dashboard from "@/pages/Dashboard";
 import Rides from "@/pages/Rides";
 import Expenses from "@/pages/Expenses";
@@ -71,8 +72,10 @@ const App = () => {
       <TooltipProvider>
         <Sonner position="top-center" closeButton={false} swipeDirections={["left", "right"]} />
         <BrowserRouter>
-          {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
-          <AppContent />
+          <AuthProvider>
+            {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+            <AppContent />
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
