@@ -168,6 +168,15 @@ export default function Login() {
               className="w-full py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 disabled:opacity-50">
               {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar Conta"}
             </button>
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => navigate("/esqueci-senha")}
+                className="w-full text-center text-xs text-muted-foreground hover:text-primary underline underline-offset-2 mt-1"
+              >
+                Esqueci minha senha
+              </button>
+            )}
           </form>
 
           <div className="flex items-center gap-3 my-5">
