@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import StatCard from "@/components/StatCard";
 import SmartInsights from "@/components/SmartInsights";
+import EvolutionPanel from "@/components/EvolutionPanel";
 import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo } from "@/lib/storage";
 import { stopSound } from "@/lib/sounds";
 import { Progress } from "@/components/ui/progress";
@@ -66,8 +67,16 @@ const PERIOD_LABELS: Record<Period, string> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>("hoje");
+  const [, setSyncTick] = useState(0);
 
   useEffect(() => { stopSound(); }, []);
+
+  // Re-render when Firestore real-time sync updates localStorage
+  useEffect(() => {
+    const onSync = () => setSyncTick((t) => t + 1);
+    window.addEventListener("mg:data-sync", onSync);
+    return () => window.removeEventListener("mg:data-sync", onSync);
+  }, []);
 
   const profile = storage.getProfile();
   const rides = storage.getRides();
@@ -233,6 +242,8 @@ export default function Dashboard() {
       </div>
 
       <SmartInsights />
+
+      <EvolutionPanel />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 mb-5">
