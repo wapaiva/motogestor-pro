@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import {
   loginWithEmail,
   registerWithEmail,
   loginWithGoogle,
+  consumeGoogleRedirect,
 } from "@/lib/firebase";
 import { syncFromFirestore, migrateLocalToFirestore } from "@/lib/firestore";
 import logo from "@/assets/logo.png";
@@ -76,16 +77,45 @@ export default function Login() {
     setLoading(false);
   };
 
+  // Handle redirect-based Google sign-in result (after returning from Google)
+  useEffect(() => {
+    (async () => {
+      const cred = await consumeGoogleRedirect();
+      if (cred?.user) {
+        setLoading(true);
+        await syncUserData(cred.user.uid);
+        toast.success("Login com Google realizado!");
+        enterApp();
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
       const cred = await loginWithGoogle();
-      await syncUserData(cred.user.uid);
-      toast.success("Login com Google realizado!");
-      enterApp();
+      // If signInWithPopup succeeded, cred has a user. If it fell back to redirect,
+      // the page will navigate away and this code won't continue.
+      if (cred?.user) {
+        await syncUserData(cred.user.uid);
+        toast.success("Login com Google realizado!");
+        enterApp();
+      }
     } catch (err: any) {
-      if (err?.code !== "auth/popup-closed-by-user") {
-        toast.error("Erro no login com Google");
+      const code = err?.code || "";
+      if (code === "auth/popup-closed-by-user") {
+        // user cancelled — silent
+      } else if (code === "auth/unauthorized-domain") {
+        toast.error("Domínio não autorizado no Firebase. Adicione este domínio em Authentication → Settings → Authorized domains.");
+      } else if (code === "auth/account-exists-with-different-credential") {
+        toast.error("Já existe uma conta com este e-mail usando outro método de login.");
+      } else if (code === "auth/network-request-failed") {
+        toast.error("Falha de rede. Verifique sua conexão.");
+      } else {
+        toast.error(`Erro no login com Google${code ? ` (${code})` : ""}`);
+        console.error("Google login error:", err);
       }
     } finally {
       setLoading(false);
