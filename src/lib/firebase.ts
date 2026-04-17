@@ -4,10 +4,14 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile,
+  browserLocalPersistence,
+  setPersistence,
   type User,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -27,6 +31,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+// Persist session across reloads
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 
 export function isFirebaseConfigured() {
   return true;
@@ -53,7 +61,32 @@ export async function registerWithEmail(email: string, password: string, name: s
 }
 
 export async function loginWithGoogle() {
-  return signInWithPopup(auth, googleProvider);
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (err: any) {
+    const code = err?.code || "";
+    // Popup blocked / iframe restrictions → fallback to redirect
+    if (
+      code === "auth/popup-blocked" ||
+      code === "auth/cancelled-popup-request" ||
+      code === "auth/operation-not-supported-in-this-environment" ||
+      code === "auth/internal-error" ||
+      code === "auth/web-storage-unsupported"
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      // Redirect navigates away; keep caller in pending state
+      return new Promise(() => {}) as never;
+    }
+    throw err;
+  }
+}
+
+export async function consumeGoogleRedirect() {
+  try {
+    return await getRedirectResult(auth);
+  } catch {
+    return null;
+  }
 }
 
 export async function logout() {
