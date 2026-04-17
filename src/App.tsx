@@ -21,12 +21,15 @@ import TermsOfUse from "@/pages/TermsOfUse";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import CookiePolicy from "@/pages/CookiePolicy";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import AuthAction from "@/pages/AuthAction";
+import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import NotFound from "@/pages/NotFound";
 import { applyTheme, getThemeMode } from "@/lib/theme";
 
 const queryClient = new QueryClient();
 
-const HIDE_NAV_ROUTES = ["/login"];
+const HIDE_NAV_ROUTES = ["/login", "/esqueci-senha", "/auth/action"];
 
 function AppContent() {
   const location = useLocation();
@@ -36,6 +39,7 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       <ConsentDialog />
       <Onboarding />
+      {!shouldHideNav && <EmailVerificationBanner />}
       <Routes>
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/corridas" element={<ProtectedRoute><Rides /></ProtectedRoute>} />
@@ -46,6 +50,8 @@ function AppContent() {
         <Route path="/comparar-apps" element={<ProtectedRoute><CompareApps /></ProtectedRoute>} />
         <Route path="/conquistas" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
+        <Route path="/esqueci-senha" element={<ForgotPassword />} />
+        <Route path="/auth/action" element={<AuthAction />} />
         <Route path="/termos" element={<TermsOfUse />} />
         <Route path="/privacidade" element={<PrivacyPolicy />} />
         <Route path="/cookies" element={<CookiePolicy />} />
