@@ -334,12 +334,12 @@ export default function CompareApps() {
                 <tbody>
                   {platformData.map((p, i) => (
                     <tr key={p.name} className={i % 2 === 1 ? "bg-secondary/30" : ""}>
-                      <td className="py-1.5 pr-2 font-medium text-foreground">{p.name}</td>
-                      <td className={`text-right py-1.5 px-1.5 ${bestValues.ganhos === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.ganhos)}</td>
-                      <td className={`text-right py-1.5 px-1.5 ${bestValues.corridas === p.name ? "font-bold text-primary" : "text-foreground"}`}>{p.corridas}</td>
-                      <td className={`text-right py-1.5 px-1.5 ${bestValues.valorPorKm === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.valorPorKm)}</td>
-                      <td className={`text-right py-1.5 px-1.5 ${bestValues.lucro === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.lucro)}</td>
-                      <td className={`text-right py-1.5 pl-1.5 ${bestValues.eficiencia === p.name ? "font-bold text-primary" : efficiencyColor(p.eficiencia)}`}>{p.eficiencia.toFixed(1)}%</td>
+                      <td className="py-1.5 pr-2 font-medium text-foreground whitespace-nowrap">{p.name}</td>
+                      <td className={`text-right py-1.5 px-1.5 whitespace-nowrap tabular-nums ${bestValues.ganhos === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.ganhos)}</td>
+                      <td className={`text-right py-1.5 px-1.5 tabular-nums ${bestValues.corridas === p.name ? "font-bold text-primary" : "text-foreground"}`}>{p.corridas}</td>
+                      <td className={`text-right py-1.5 px-1.5 whitespace-nowrap tabular-nums ${bestValues.valorPorKm === p.name ? "font-bold text-primary" : "text-foreground"}`}>{formatCurrency(p.valorPorKm)}</td>
+                      <td className={`text-right py-1.5 px-1.5 whitespace-nowrap tabular-nums ${p.lucro < 0 ? "text-destructive font-semibold" : bestValues.lucro === p.name ? "font-bold text-success" : "text-foreground"}`}>{formatCurrency(p.lucro)}</td>
+                      <td className={`text-right py-1.5 pl-1.5 whitespace-nowrap tabular-nums font-semibold ${efficiencyColor(p.eficiencia)}`}>{p.eficiencia.toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>

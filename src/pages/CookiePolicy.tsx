@@ -1,7 +1,7 @@
 import { ArrowLeft, Cookie } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const SUPPORT_EMAIL = "suporte.motogestorpro@gmail.com";
+const SUPPORT_EMAIL = "suporte@motogestorpro.com";
 const APP_NAME = "MotoGestor Pro";
 const DEV_NAME = "WC Tech Labs";
 

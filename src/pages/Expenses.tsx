@@ -129,7 +129,7 @@ export default function Expenses() {
 
     const entry: FuelEntry = { id: generateId(), date: fuelDate.toISOString(), amount, liters, odometer: odo, fuelType };
     storage.addFuel(entry);
-    if (user) addFuelToFirestore(user.uid, entry).catch(console.error);
+    if (user) addFuelToFirestore(user.uid, entry).catch((e) => { console.error("[Firestore] addFuel falhou:", e); toast.error("Falha ao sincronizar abastecimento. Dados salvos localmente."); });
     setFuel(storage.getFuel());
     setFuelAmount(""); setFuelLiters(""); setFuelOdo(""); setFuelDate(new Date());
     setShowForm(false); playHornSound();
@@ -149,7 +149,7 @@ export default function Expenses() {
     }
     const entry: MaintenanceEntry = { id: generateId(), date: maintDate.toISOString(), type: maintType, amount: parseFloat(maintAmount), odometer: parseFloat(maintOdo) || 0, notes: maintNotes };
     storage.addMaintenance(entry);
-    if (user) addMaintenanceToFirestore(user.uid, entry).catch(console.error);
+    if (user) addMaintenanceToFirestore(user.uid, entry).catch((e) => { console.error("[Firestore] addMaintenance falhou:", e); toast.error("Falha ao sincronizar manutenção. Dados salvos localmente."); });
     setMaint(storage.getMaintenance());
     setMaintAmount(""); setMaintOdo(""); setMaintNotes(""); setMaintDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Manutenção registrada!");
@@ -162,7 +162,7 @@ export default function Expenses() {
     }
     const entry: Expense = { id: generateId(), date: expDate.toISOString(), category: expCat, amount: parseFloat(expAmount), description: expDesc };
     storage.addExpense(entry);
-    if (user) addExpenseToFirestore(user.uid, entry).catch(console.error);
+    if (user) addExpenseToFirestore(user.uid, entry).catch((e) => { console.error("[Firestore] addExpense falhou:", e); toast.error("Falha ao sincronizar despesa. Dados salvos localmente."); });
     setExp(storage.getExpenses());
     setExpAmount(""); setExpDesc(""); setExpDate(new Date());
     setShowForm(false); playHornSound(); toast.success("Despesa registrada!");
