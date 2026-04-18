@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Copy, Mail, FileText, Shield, Database, Download, Trash2, LogOut, Bell } from "lucide-react";
+import { Copy, Mail, FileText, Shield, Database, Download, Trash2, LogOut, Bell, User as UserIcon, KeyRound, MailCheck, BadgeCheck, AlertCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { storage, UserProfile, Goals, formatCurrency } from "@/lib/storage";
 import { playSuccessSound } from "@/lib/sounds";
@@ -8,6 +8,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/context/AuthProvider";
 import { saveProfileToFirestore, saveGoalsToFirestore } from "@/lib/firestore";
+import { sendPasswordReset, resendVerificationEmail } from "@/lib/firebase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   requestNotificationPermission,
   getNotificationSettings,
