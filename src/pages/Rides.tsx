@@ -84,7 +84,7 @@ export default function Rides() {
       notes,
     };
     storage.addRide(ride);
-    if (user) addRideToFirestore(user.uid, ride).catch(console.error);
+    if (user) addRideToFirestore(user.uid, ride).catch((e) => { console.error("[Firestore] addRide falhou:", e); toast.error("Falha ao sincronizar com a nuvem. Dados salvos localmente."); });
     setRides(storage.getRides());
     setAmount("");
     setDistance("");
