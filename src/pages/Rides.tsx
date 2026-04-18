@@ -84,7 +84,20 @@ export default function Rides() {
       notes,
     };
     storage.addRide(ride);
-    if (user) addRideToFirestore(user.uid, ride).catch((e) => { console.error("[Firestore] addRide falhou:", e); toast.error("Falha ao sincronizar com a nuvem. Dados salvos localmente."); });
+    if (user) {
+      console.log("[Firestore] Salvando corrida para uid:", user.uid, "emailVerified:", user.emailVerified);
+      addRideToFirestore(user.uid, ride)
+        .then(() => console.log("[Firestore] ✅ Corrida sincronizada:", ride.id))
+        .catch((e) => {
+          console.error("[Firestore] ❌ addRide falhou:", e?.code, e?.message, e);
+          toast.error(`Falha sync nuvem: ${e?.code || e?.message || "erro desconhecido"}`, {
+            description: "Dados salvos localmente. Veja o console (F12) para detalhes.",
+            duration: 6000,
+          });
+        });
+    } else {
+      console.warn("[Firestore] ⚠️ Usuário não autenticado — corrida salva apenas localmente (modo visitante)");
+    }
     setRides(storage.getRides());
     setAmount("");
     setDistance("");
