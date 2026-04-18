@@ -78,7 +78,45 @@ export default function Profile() {
   const { user, logout: authLogout } = useAuth();
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
   const [goals, setGoals] = useState<Goals>(storage.getGoals());
-  const [tab, setTab] = useState<"dados" | "moto" | "metas" | "notificacoes" | "backup" | "sobre">("dados");
+  const [tab, setTab] = useState<"conta" | "dados" | "moto" | "metas" | "notificacoes" | "backup" | "sobre">("conta");
+
+  const displayName = user?.displayName || profile.name || "";
+  const initials = (displayName || user?.email || "U")
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const handleChangePassword = async () => {
+    if (!user?.email) { toast.error("Usuário sem e-mail cadastrado"); return; }
+    try {
+      await sendPasswordReset(user.email);
+      playSuccessSound();
+      toast.success("Enviamos um link para alterar sua senha no seu e-mail");
+    } catch (err: any) {
+      console.error("[changePassword]", err);
+      toast.error(err?.message || "Não foi possível enviar o e-mail");
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      await resendVerificationEmail();
+      playSuccessSound();
+      toast.success("E-mail de verificação reenviado");
+    } catch (err: any) {
+      console.error("[resendVerification]", err);
+      toast.error(err?.message || "Não foi possível reenviar a verificação");
+    }
+  };
+
+  const copyUid = async () => {
+    if (!user?.uid) return;
+    try { await navigator.clipboard.writeText(user.uid); toast.success("UID copiado"); }
+    catch { toast.error("Não foi possível copiar"); }
+  };
 
   useEffect(() => {
     const state = location.state as { scrollTo?: string } | null;
