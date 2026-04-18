@@ -16,7 +16,7 @@ import {
   getNotificationPermission,
 } from "@/lib/notifications";
 
-const SUPPORT_EMAIL = "suporte.motogestorpro@gmail.com";
+const SUPPORT_EMAIL = "suporte@motogestorpro.com";
 const inputClass = "w-full mt-1 px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground";
 const labelClass = "text-xs font-medium text-muted-foreground";
 
