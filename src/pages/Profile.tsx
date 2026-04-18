@@ -194,6 +194,7 @@ export default function Profile() {
   };
 
   const tabs = [
+    { key: "conta" as const, label: "Conta" },
     { key: "dados" as const, label: "Meus Dados" },
     { key: "moto" as const, label: "Minha Moto" },
     { key: "metas" as const, label: "Metas" },
@@ -204,7 +205,19 @@ export default function Profile() {
 
   return (
     <div className="pb-20 px-4 pt-4 max-w-lg mx-auto">
-      <h2 className="text-lg font-bold text-foreground mb-4">Perfil</h2>
+      <div className="glass-card rounded-2xl p-4 mb-4 flex items-center gap-3 animate-fade-in">
+        <Avatar className="h-14 w-14 border-2 border-primary/30">
+          {user?.photoURL ? <AvatarImage src={user.photoURL} alt={displayName} /> : null}
+          <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-base font-bold text-foreground truncate">{displayName || "Usuário"}</h2>
+            {user?.emailVerified && <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{user?.email || "Modo visitante"}</p>
+        </div>
+      </div>
 
       <div className="flex gap-2 mb-4 overflow-x-auto">
         {tabs.map((t) => (
@@ -214,6 +227,55 @@ export default function Profile() {
           </button>
         ))}
       </div>
+
+      {tab === "conta" && (
+        <div className="glass-card rounded-xl p-4 animate-fade-in space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-card-foreground mb-2 flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-primary" /> Dados da Conta
+            </h3>
+            <div className="space-y-2">
+              <div>
+                <label className={labelClass}>E-mail</label>
+                <input value={user?.email || "—"} readOnly className={`${inputClass} opacity-70 cursor-not-allowed`} />
+              </div>
+              <div>
+                <label className={labelClass}>Status do e-mail</label>
+                <div className="mt-1 flex items-center gap-2 px-3 py-2 bg-input border border-border rounded-lg">
+                  {user?.emailVerified ? (
+                    <><BadgeCheck className="w-4 h-4 text-primary" /><span className="text-sm text-card-foreground">Verificado</span></>
+                  ) : (
+                    <><AlertCircle className="w-4 h-4 text-destructive" /><span className="text-sm text-card-foreground">Não verificado</span></>
+                  )}
+                </div>
+              </div>
+              {user?.uid && (
+                <div>
+                  <label className={labelClass}>UID</label>
+                  <button onClick={copyUid} className={`${inputClass} text-left flex items-center justify-between gap-2 hover:bg-secondary/50 transition-colors`}>
+                    <span className="truncate font-mono text-xs">{user.uid}</span>
+                    <Copy className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-3 space-y-2">
+            <h3 className="text-sm font-semibold text-card-foreground mb-1">Configurações</h3>
+            <button onClick={handleChangePassword} disabled={!user?.email}
+              className="w-full flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-2.5 rounded-lg font-medium text-sm disabled:opacity-50">
+              <KeyRound className="w-4 h-4" /> Alterar Senha
+            </button>
+            {!user?.emailVerified && user?.email && (
+              <button onClick={handleResendVerification}
+                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-lg font-medium text-sm">
+                <MailCheck className="w-4 h-4" /> Reenviar Verificação de E-mail
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {tab === "dados" && (
         <div className="glass-card rounded-xl p-4 animate-fade-in space-y-3">
