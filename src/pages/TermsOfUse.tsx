@@ -58,6 +58,13 @@ export default function TermsOfUse() {
         </section>
 
         <section>
+          <h3 className="text-sm font-semibold text-card-foreground mb-1">4.1. Geolocalização (Funcionalidade Auxiliar)</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            O Aplicativo oferece um recurso opcional de detecção automática da cidade por meio da geolocalização do dispositivo, acionado exclusivamente pelo Usuário. As coordenadas obtidas são utilizadas apenas para identificar o nome da cidade via serviço de geocodificação reversa e <strong>não são armazenadas</strong>. O Usuário é responsável por revisar e manter atualizadas as informações de cidade exibidas em seu perfil, podendo editá-las manualmente a qualquer momento. A negativa de permissão não impede o uso do Aplicativo.
+          </p>
+        </section>
+
+        <section>
           <h3 className="text-sm font-semibold text-card-foreground mb-1">5. Versão Gratuita e Premium (PRO)</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             O Aplicativo é oferecido em versão gratuita com funcionalidades básicas e exibição de anúncios. A versão Premium (PRO) remove anúncios e libera funcionalidades adicionais mediante pagamento de assinatura processada pela Google Play Store. O cancelamento da assinatura segue as políticas da Google Play. Não há reembolso proporcional por período não utilizado, exceto conforme previsto nas políticas da Google Play.
