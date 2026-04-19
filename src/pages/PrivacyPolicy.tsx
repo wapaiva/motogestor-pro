@@ -36,6 +36,7 @@ export default function PrivacyPolicy() {
             <li><strong>Dados financeiros:</strong> valores de corridas, ganhos, despesas, combustível e manutenção.</li>
             <li><strong>Dados do veículo:</strong> modelo, placa, quilometragem e ano.</li>
             <li><strong>Dados de uso:</strong> cidade de atuação, plataformas utilizadas, tipo de serviço.</li>
+            <li><strong>Dados de localização (opcional):</strong> quando o Usuário aciona o botão "Detectar minha cidade", solicitamos a localização aproximada do dispositivo <strong>apenas para sugerir o nome da cidade</strong>. As coordenadas (latitude/longitude) <strong>não são armazenadas</strong> em nossos servidores nem no dispositivo — somente o nome da cidade é salvo, e o Usuário pode editá-lo ou removê-lo a qualquer momento. O recurso é totalmente opcional e exige consentimento explícito.</li>
             <li><strong>Dados técnicos:</strong> identificador do dispositivo, versão do sistema operacional, logs de erro (coletados automaticamente para melhoria do serviço).</li>
           </ul>
         </section>

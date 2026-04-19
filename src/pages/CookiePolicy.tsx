@@ -49,6 +49,10 @@ export default function CookiePolicy() {
               <p className="text-[10px] text-muted-foreground mt-1 italic">Tecnologias: Google AdMob, Google Ads SDK.</p>
               <p className="text-[10px] text-primary mt-1 font-medium">✨ Na versão PRO, cookies de publicidade são completamente desativados.</p>
             </div>
+            <div className="premium-card p-3">
+              <p className="text-xs font-semibold text-card-foreground">📍 Preferência de Geolocalização</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Quando o Usuário utiliza o recurso "Detectar minha cidade", armazenamos localmente uma pequena flag (<code>mg_geo_notice_ack</code>) indicando que o aviso de privacidade já foi exibido. <strong>Nenhuma coordenada</strong> (latitude/longitude) é armazenada — somente o nome da cidade escolhida pelo Usuário é salvo no perfil.</p>
+            </div>
           </div>
         </section>
 
