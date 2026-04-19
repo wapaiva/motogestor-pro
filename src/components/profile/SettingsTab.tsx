@@ -1,16 +1,18 @@
 import { useNavigate } from "react-router-dom";
-import { Bell, Palette, Shield, Info, FileText, Cookie, ChevronRight, KeyRound, MailCheck, BadgeCheck, AlertCircle } from "lucide-react";
+import { Palette, Shield, KeyRound, MailCheck, BadgeCheck, AlertCircle, FileText, Cookie, ChevronRight, Database } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "firebase/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 import { sendPasswordReset, resendVerificationEmail } from "@/lib/firebase";
 import { playSuccessSound } from "@/lib/sounds";
 import NotificationsTab from "./NotificationsTab";
-
-const SUPPORT_EMAIL = "suporte@motogestorpro.com";
+import BackupTab from "./BackupTab";
+import type { UserProfile, Goals } from "@/lib/storage";
 
 interface Props {
   user: User | null;
+  setProfile: (p: UserProfile) => void;
+  setGoals: (g: Goals) => void;
 }
 
 function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
@@ -28,7 +30,7 @@ function LinkRow({ icon: Icon, label, onClick }: { icon: any; label: string; onC
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-secondary/60 hover:bg-secondary text-secondary-foreground rounded-lg text-sm font-medium transition-colors"
+      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-secondary/60 hover:bg-secondary text-secondary-foreground rounded-lg text-sm font-medium transition-colors active:scale-[0.99]"
     >
       <span className="flex items-center gap-2"><Icon className="w-4 h-4" /> {label}</span>
       <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -36,7 +38,7 @@ function LinkRow({ icon: Icon, label, onClick }: { icon: any; label: string; onC
   );
 }
 
-export default function SettingsTab({ user }: Props) {
+export default function SettingsTab({ user, setProfile, setGoals }: Props) {
   const navigate = useNavigate();
 
   const handleChangePassword = async () => {
@@ -94,13 +96,13 @@ export default function SettingsTab({ user }: Props) {
         )}
       </Section>
 
-      {/* Sobre */}
-      <Section icon={Info} title="Sobre">
-        <div className="px-1">
-          <p className="text-sm font-semibold text-card-foreground">MotoGestor Pro</p>
-          <p className="text-xs text-muted-foreground">Versão 1.0.0</p>
-          <p className="text-xs text-muted-foreground mt-1">Suporte: {SUPPORT_EMAIL}</p>
-        </div>
+      {/* Backup */}
+      <Section icon={Database} title="Backup">
+        <BackupTab setProfile={setProfile} setGoals={setGoals} />
+      </Section>
+
+      {/* Documentos */}
+      <Section icon={FileText} title="Documentos">
         <LinkRow icon={FileText} label="Termos de Uso" onClick={() => navigate("/termos")} />
         <LinkRow icon={Shield} label="Política de Privacidade" onClick={() => navigate("/privacidade")} />
         <LinkRow icon={Cookie} label="Política de Cookies" onClick={() => navigate("/cookies")} />

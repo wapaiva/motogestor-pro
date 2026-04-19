@@ -24,10 +24,22 @@ export default function AboutTab() {
           <p className="text-xs text-muted-foreground">Versão 1.0.0</p>
         </div>
       </div>
-      <p className="text-sm text-card-foreground leading-relaxed">
-        O MotoGestor Pro é o aplicativo completo de gestão financeira para motoboys, entregadores e motoristas de aplicativo.
-        Registre corridas, controle gastos, acompanhe lucro líquido em tempo real e defina metas.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-card-foreground leading-relaxed">
+          O <strong>MotoGestor Pro</strong> é o aplicativo completo de gestão financeira pensado especialmente para
+          motoboys e entregadores de aplicativo. Ele transforma a rotina de quem vive sobre duas rodas em dados
+          claros e decisões inteligentes.
+        </p>
+        <p className="text-sm text-card-foreground leading-relaxed">
+          Registre corridas, controle gastos com combustível e manutenção, acompanhe seu lucro líquido em tempo real,
+          defina metas diárias, semanais e mensais e visualize relatórios detalhados sobre seu desempenho. Tudo em um
+          só lugar, com sincronização segura na nuvem para você nunca perder seus dados.
+        </p>
+        <p className="text-sm text-card-foreground leading-relaxed">
+          Mais que um app de finanças, o MotoGestor Pro é o seu parceiro de trabalho — feito para ajudar você a
+          ganhar mais, gastar menos e ter total controle da sua atividade profissional.
+        </p>
+      </div>
       <p className="text-sm text-muted-foreground font-medium">
         Desenvolvido por <span className="text-primary font-semibold">WC Tech Labs</span>
       </p>
