@@ -34,7 +34,7 @@ export default function TermsOfUse() {
         <section>
           <h3 className="text-sm font-semibold text-card-foreground mb-1">2. Descrição do Serviço</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            O {APP_NAME} é uma ferramenta de gestão financeira pessoal destinada a profissionais de transporte por motocicleta (motoboys, entregadores e motoristas de aplicativo). O aplicativo permite o registro de corridas, controle de despesas, geração de relatórios financeiros e acompanhamento de metas. Os cálculos e análises são meramente informativos e <strong>não substituem consultoria contábil, fiscal ou financeira profissional</strong>.
+            O {APP_NAME} é uma ferramenta de gestão financeira pessoal destinada a profissionais de transporte por motocicleta (motoboys e entregadores de aplicativo). O aplicativo permite o registro de corridas, controle de despesas, geração de relatórios financeiros e acompanhamento de metas. Os cálculos e análises são meramente informativos e <strong>não substituem consultoria contábil, fiscal ou financeira profissional</strong>.
           </p>
         </section>
 
