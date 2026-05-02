@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2, Fuel, Wrench, AlertTriangle, CalendarIcon, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -77,6 +77,21 @@ export default function Expenses() {
   const [maint, setMaint] = useState(storage.getMaintenance());
   const [exp, setExp] = useState(storage.getExpenses());
   const [showForm, setShowForm] = useState(false);
+
+  // Re-render when Firestore real-time sync updates localStorage or user changes
+  useEffect(() => {
+    const refresh = () => {
+      setFuel(storage.getFuel());
+      setMaint(storage.getMaintenance());
+      setExp(storage.getExpenses());
+    };
+    window.addEventListener("mg:data-sync", refresh);
+    window.addEventListener("mg:user-changed", refresh);
+    return () => {
+      window.removeEventListener("mg:data-sync", refresh);
+      window.removeEventListener("mg:user-changed", refresh);
+    };
+  }, []);
 
   const profile = storage.getProfile();
   const isMotoRegistered = !!(profile.motoModel && profile.motoYear && profile.motoPlate);
