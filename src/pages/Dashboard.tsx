@@ -11,7 +11,7 @@ import {
 import StatCard from "@/components/StatCard";
 import SmartInsights from "@/components/SmartInsights";
 import EvolutionPanel from "@/components/EvolutionPanel";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo, computePeriodSummary } from "@/lib/storage";
 import { stopSound } from "@/lib/sounds";
 import { Progress } from "@/components/ui/progress";
 import { calculateGamification, getXpProgress, getLevelTitle } from "@/lib/gamification";
@@ -26,20 +26,7 @@ function isLast3Months(dateStr: string) {
   return d >= threeMonthsAgo;
 }
 
-function computeProfit(
-  rides: ReturnType<typeof storage.getRides>,
-  fuel: ReturnType<typeof storage.getFuel>,
-  maintenance: ReturnType<typeof storage.getMaintenance>,
-  expenses: ReturnType<typeof storage.getExpenses>,
-  filterFn: (d: string) => boolean
-) {
-  const totalEarnings = rides.filter((r) => filterFn(r.date)).reduce((s, r) => s + r.amount, 0);
-  const totalExpenses =
-    fuel.filter((f) => filterFn(f.date)).reduce((s, f) => s + f.amount, 0) +
-    maintenance.filter((m) => filterFn(m.date)).reduce((s, m) => s + m.amount, 0) +
-    expenses.filter((e) => filterFn(e.date)).reduce((s, e) => s + e.amount, 0);
-  return totalEarnings - totalExpenses;
-}
+// Profit calculation now lives in storage.computePeriodSummary (single source of truth).
 
 const tooltipStyle: React.CSSProperties = {
   backgroundColor: "hsl(222, 25%, 12%)",
