@@ -96,6 +96,27 @@ export default function Profile() {
     }
   }, [location.state]);
 
+  // Re-load profile/goals when user changes or Firestore syncs
+  useEffect(() => {
+    const refresh = () => {
+      setProfile(storage.getProfile());
+      setGoals(storage.getGoals());
+    };
+    window.addEventListener("mg:data-sync", refresh);
+    window.addEventListener("mg:user-changed", refresh);
+    return () => {
+      window.removeEventListener("mg:data-sync", refresh);
+      window.removeEventListener("mg:user-changed", refresh);
+    };
+  }, []);
+
+  // Reset autofill flag when user changes (so a new account gets its own autofill)
+  useEffect(() => {
+    autofilledRef.current = false;
+    setProfile(storage.getProfile());
+    setGoals(storage.getGoals());
+  }, [user?.uid]);
+
   // Resumo do mês
   const summary = useMemo(() => {
     const rides = storage.getRides().filter((r) => isThisMonth(r.date));
