@@ -11,6 +11,17 @@ interface Insight {
 
 export default function SmartInsights() {
   const soundPlayed = useRef(false);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setTick((t) => t + 1);
+    window.addEventListener("mg:data-sync", refresh);
+    window.addEventListener("mg:user-changed", refresh);
+    return () => {
+      window.removeEventListener("mg:data-sync", refresh);
+      window.removeEventListener("mg:user-changed", refresh);
+    };
+  }, []);
 
   const insights = useMemo(() => {
     const rides = storage.getRides();
