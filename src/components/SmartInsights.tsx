@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { AlertTriangle, TrendingDown, Fuel, Wrench, Zap, BarChart3 } from "lucide-react";
 import { storage, formatCurrency, isThisWeek, isThisMonth, isToday, getAvgFuelPrice, obterConsumoAtivo, getConsumoReal } from "@/lib/storage";
 import { playAlertSound } from "@/lib/sounds";
@@ -11,6 +11,17 @@ interface Insight {
 
 export default function SmartInsights() {
   const soundPlayed = useRef(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setTick((t) => t + 1);
+    window.addEventListener("mg:data-sync", refresh);
+    window.addEventListener("mg:user-changed", refresh);
+    return () => {
+      window.removeEventListener("mg:data-sync", refresh);
+      window.removeEventListener("mg:user-changed", refresh);
+    };
+  }, []);
 
   const insights = useMemo(() => {
     const rides = storage.getRides();
@@ -234,7 +245,8 @@ export default function SmartInsights() {
     }
 
     return result;
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   useEffect(() => {
     if (insights.some((i) => i.type === "danger") && !soundPlayed.current) {

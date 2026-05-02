@@ -35,13 +35,24 @@ export default function Login() {
 
   const syncUserData = async (uid: string) => {
     try {
-      // If user has local data, migrate to Firestore
-      const { storage } = await import("@/lib/storage");
+      const { storage, setActiveUser } = await import("@/lib/storage");
+      const { getRidesFromFirestore } = await import("@/lib/firestore");
+
+      // Make sure the storage scope matches THIS account before any read/write
+      setActiveUser(uid);
+
+      // Check if this account already has cloud data
+      const cloudRides = await getRidesFromFirestore(uid);
       const localRides = storage.getRides();
-      if (localRides.length > 0) {
+
+      // Only push local → cloud when the cloud is empty AND we have local data.
+      // This prevents leaking guest data into an account that already has its own,
+      // and prevents duplicating data on subsequent logins.
+      if (cloudRides.length === 0 && localRides.length > 0) {
         await migrateLocalToFirestore(uid);
       }
-      // Then sync from Firestore to localStorage
+
+      // Always pull cloud → local (overwrites local cache)
       await syncFromFirestore(uid);
     } catch (err) {
       console.error("Sync error:", err);

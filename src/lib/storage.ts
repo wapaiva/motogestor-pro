@@ -70,9 +70,44 @@ const DEFAULT_GOALS: Goals = {
   monthly: 5000,
 };
 
+// === User-scoped storage ===
+// Each authenticated user has its own keyspace: mg:<uid>:<key>
+// Guests use mg:guest:<key>. The active uid is set via setActiveUser().
+const ACTIVE_UID_KEY = "mg_active_uid";
+
+function getActiveUid(): string {
+  return localStorage.getItem(ACTIVE_UID_KEY) || "guest";
+}
+
+export function setActiveUser(uid: string | null) {
+  const next = uid || "guest";
+  const prev = getActiveUid();
+  localStorage.setItem(ACTIVE_UID_KEY, next);
+  if (prev !== next) {
+    // Notify listeners so screens re-read scoped data
+    window.dispatchEvent(new Event("mg:user-changed"));
+  }
+}
+
+/** Wipe ALL scoped data for a given uid (used on logout to prevent leaks). */
+export function clearUserScope(uid: string | null) {
+  const target = uid || "guest";
+  const prefix = `mg:${target}:`;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(prefix)) keysToRemove.push(k);
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
+}
+
+function scopedKey(key: string): string {
+  return `mg:${getActiveUid()}:${key}`;
+}
+
 function get<T>(key: string, fallback: T): T {
   try {
-    const v = localStorage.getItem(key);
+    const v = localStorage.getItem(scopedKey(key));
     return v ? JSON.parse(v) : fallback;
   } catch {
     return fallback;
@@ -80,12 +115,12 @@ function get<T>(key: string, fallback: T): T {
 }
 
 function set(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value));
+  localStorage.setItem(scopedKey(key), JSON.stringify(value));
 }
 
 export const storage = {
-  getRides: (): Ride[] => get("mg_rides", []),
-  saveRides: (r: Ride[]) => set("mg_rides", r),
+  getRides: (): Ride[] => get("rides", []),
+  saveRides: (r: Ride[]) => set("rides", r),
   addRide: (r: Ride) => {
     const all = storage.getRides();
     all.push(r);
@@ -94,8 +129,8 @@ export const storage = {
   deleteRide: (id: string) =>
     storage.saveRides(storage.getRides().filter((r) => r.id !== id)),
 
-  getFuel: (): FuelEntry[] => get("mg_fuel", []),
-  saveFuel: (f: FuelEntry[]) => set("mg_fuel", f),
+  getFuel: (): FuelEntry[] => get("fuel", []),
+  saveFuel: (f: FuelEntry[]) => set("fuel", f),
   addFuel: (f: FuelEntry) => {
     const all = storage.getFuel();
     all.push(f);
@@ -104,8 +139,8 @@ export const storage = {
   deleteFuel: (id: string) =>
     storage.saveFuel(storage.getFuel().filter((f) => f.id !== id)),
 
-  getMaintenance: (): MaintenanceEntry[] => get("mg_maintenance", []),
-  saveMaintenance: (m: MaintenanceEntry[]) => set("mg_maintenance", m),
+  getMaintenance: (): MaintenanceEntry[] => get("maintenance", []),
+  saveMaintenance: (m: MaintenanceEntry[]) => set("maintenance", m),
   addMaintenance: (m: MaintenanceEntry) => {
     const all = storage.getMaintenance();
     all.push(m);
@@ -114,8 +149,8 @@ export const storage = {
   deleteMaintenance: (id: string) =>
     storage.saveMaintenance(storage.getMaintenance().filter((m) => m.id !== id)),
 
-  getExpenses: (): Expense[] => get("mg_expenses", []),
-  saveExpenses: (e: Expense[]) => set("mg_expenses", e),
+  getExpenses: (): Expense[] => get("expenses", []),
+  saveExpenses: (e: Expense[]) => set("expenses", e),
   addExpense: (e: Expense) => {
     const all = storage.getExpenses();
     all.push(e);
@@ -124,12 +159,37 @@ export const storage = {
   deleteExpense: (id: string) =>
     storage.saveExpenses(storage.getExpenses().filter((e) => e.id !== id)),
 
-  getProfile: (): UserProfile => get("mg_profile", DEFAULT_PROFILE),
-  saveProfile: (p: UserProfile) => set("mg_profile", p),
+  getProfile: (): UserProfile => get("profile", DEFAULT_PROFILE),
+  saveProfile: (p: UserProfile) => set("profile", p),
 
-  getGoals: (): Goals => get("mg_goals", DEFAULT_GOALS),
-  saveGoals: (g: Goals) => set("mg_goals", g),
+  getGoals: (): Goals => get("goals", DEFAULT_GOALS),
+  saveGoals: (g: Goals) => set("goals", g),
 };
+
+// === One-time migration: legacy unscoped keys → active user scope ===
+// Old keys (mg_rides, mg_fuel, ...) were shared across users on the device.
+// On first call we move them under the active uid scope, then delete the
+// legacy keys so subsequent users don't inherit them.
+export function migrateLegacyKeysIntoActiveScope() {
+  const legacy: Array<[string, string]> = [
+    ["mg_rides", "rides"],
+    ["mg_fuel", "fuel"],
+    ["mg_maintenance", "maintenance"],
+    ["mg_expenses", "expenses"],
+    ["mg_profile", "profile"],
+    ["mg_goals", "goals"],
+  ];
+  const uid = getActiveUid();
+  for (const [oldKey, newKey] of legacy) {
+    const raw = localStorage.getItem(oldKey);
+    if (raw == null) continue;
+    const targetKey = `mg:${uid}:${newKey}`;
+    if (localStorage.getItem(targetKey) == null) {
+      localStorage.setItem(targetKey, raw);
+    }
+    localStorage.removeItem(oldKey);
+  }
+}
 
 export function formatCurrency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -244,4 +304,67 @@ export function validarAbastecimento(odometer: number): { valid: boolean; messag
     return { valid: false, message: `KM deve ser maior que o último abastecimento (${lastOdo.toLocaleString("pt-BR")} km)` };
   }
   return { valid: true };
+}
+
+// === Single source of truth: period summary ===
+// All screens (Dashboard, Reports, Rides) MUST use this to compute totals
+// and profit so numbers never disagree between views.
+//
+// Definitions:
+//   ganhos       = soma do valor de todas as corridas no período
+//   gastosReais  = combustível registrado + manutenção + extras (no período)
+//   lucro        = ganhos − gastosReais   ← ÚNICA definição de "Lucro Líquido"
+//   custoCombustivelEstimado  = projeção meramente informativa (km × R$/km)
+export interface PeriodSummary {
+  ganhos: number;
+  gastosReais: number;
+  combustivelReal: number;
+  manutencao: number;
+  extras: number;
+  lucro: number;
+  distancia: number;
+  qtdCorridas: number;
+  mediaPorCorrida: number;
+  mediaPorKm: number;
+  custoPorKm: number;
+  margemLucro: number;
+  litrosEstimados: number;
+  custoCombustivelEstimado: number;
+}
+
+export function computePeriodSummary(filterFn: (d: string) => boolean): PeriodSummary {
+  const rides = storage.getRides().filter((r) => filterFn(r.date));
+  const fuel = storage.getFuel().filter((f) => filterFn(f.date));
+  const maint = storage.getMaintenance().filter((m) => filterFn(m.date));
+  const exp = storage.getExpenses().filter((e) => filterFn(e.date));
+
+  const ganhos = rides.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const distancia = rides.reduce((s, r) => s + (Number(r.distance) || 0), 0);
+  const combustivelReal = fuel.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const manutencao = maint.reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  const extras = exp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const gastosReais = combustivelReal + manutencao + extras;
+  const lucro = ganhos - gastosReais;
+
+  const consumo = obterConsumoAtivo();
+  const avgPrice = getAvgFuelPrice();
+  const litrosEstimados = calcularLitrosGastos(distancia, consumo.valor);
+  const custoCombustivelEstimado = calcularCustoCombustivel(distancia, consumo.valor, avgPrice);
+
+  return {
+    ganhos,
+    gastosReais,
+    combustivelReal,
+    manutencao,
+    extras,
+    lucro,
+    distancia,
+    qtdCorridas: rides.length,
+    mediaPorCorrida: rides.length > 0 ? ganhos / rides.length : 0,
+    mediaPorKm: distancia > 0 ? ganhos / distancia : 0,
+    custoPorKm: distancia > 0 ? gastosReais / distancia : 0,
+    margemLucro: ganhos > 0 ? (lucro / ganhos) * 100 : 0,
+    litrosEstimados,
+    custoCombustivelEstimado,
+  };
 }

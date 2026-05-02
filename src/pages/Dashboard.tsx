@@ -11,7 +11,7 @@ import {
 import StatCard from "@/components/StatCard";
 import SmartInsights from "@/components/SmartInsights";
 import EvolutionPanel from "@/components/EvolutionPanel";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo, computePeriodSummary } from "@/lib/storage";
 import { stopSound } from "@/lib/sounds";
 import { Progress } from "@/components/ui/progress";
 import { calculateGamification, getXpProgress, getLevelTitle } from "@/lib/gamification";
@@ -26,20 +26,7 @@ function isLast3Months(dateStr: string) {
   return d >= threeMonthsAgo;
 }
 
-function computeProfit(
-  rides: ReturnType<typeof storage.getRides>,
-  fuel: ReturnType<typeof storage.getFuel>,
-  maintenance: ReturnType<typeof storage.getMaintenance>,
-  expenses: ReturnType<typeof storage.getExpenses>,
-  filterFn: (d: string) => boolean
-) {
-  const totalEarnings = rides.filter((r) => filterFn(r.date)).reduce((s, r) => s + r.amount, 0);
-  const totalExpenses =
-    fuel.filter((f) => filterFn(f.date)).reduce((s, f) => s + f.amount, 0) +
-    maintenance.filter((m) => filterFn(m.date)).reduce((s, m) => s + m.amount, 0) +
-    expenses.filter((e) => filterFn(e.date)).reduce((s, e) => s + e.amount, 0);
-  return totalEarnings - totalExpenses;
-}
+// Profit calculation now lives in storage.computePeriodSummary (single source of truth).
 
 const tooltipStyle: React.CSSProperties = {
   backgroundColor: "hsl(222, 25%, 12%)",
@@ -71,11 +58,15 @@ export default function Dashboard() {
 
   useEffect(() => { stopSound(); }, []);
 
-  // Re-render when Firestore real-time sync updates localStorage
+  // Re-render when Firestore real-time sync updates localStorage or user changes
   useEffect(() => {
     const onSync = () => setSyncTick((t) => t + 1);
     window.addEventListener("mg:data-sync", onSync);
-    return () => window.removeEventListener("mg:data-sync", onSync);
+    window.addEventListener("mg:user-changed", onSync);
+    return () => {
+      window.removeEventListener("mg:data-sync", onSync);
+      window.removeEventListener("mg:user-changed", onSync);
+    };
   }, []);
 
   const profile = storage.getProfile();
@@ -87,48 +78,40 @@ export default function Dashboard() {
 
   const filterFn = period === "hoje" ? isToday : period === "semana" ? isThisWeek : period === "trimestre" ? isLast3Months : isThisMonth;
 
+  // Single source of truth for the selected period's totals
   const data = useMemo(() => {
-    const filteredRides = rides.filter((r) => filterFn(r.date));
-    const filteredFuel = fuel.filter((f) => filterFn(f.date));
-    const filteredMaint = maintenance.filter((m) => filterFn(m.date));
-    const filteredExp = expenses.filter((e) => filterFn(e.date));
-    const totalEarnings = filteredRides.reduce((s, r) => s + r.amount, 0);
-    const totalDistance = filteredRides.reduce((s, r) => s + r.distance, 0);
-    const fuelCost = filteredFuel.reduce((s, f) => s + f.amount, 0);
-    const maintCost = filteredMaint.reduce((s, m) => s + m.amount, 0);
-    const expCost = filteredExp.reduce((s, e) => s + e.amount, 0);
-    const totalExpenses = fuelCost + maintCost + expCost;
-    const fuelLiters = filteredFuel.reduce((s, f) => s + f.liters, 0);
-    
-    // Smart consumption: use real data if available, else expected
+    const s = computePeriodSummary(filterFn);
+    const fuelLiters = fuel.filter((f) => filterFn(f.date)).reduce((sum, f) => sum + (Number(f.liters) || 0), 0);
     const consumo = obterConsumoAtivo();
     const avgPrice = getAvgFuelPrice();
-    const estimatedLiters = calcularLitrosGastos(totalDistance, consumo.valor);
-    const estimatedFuelCost = calcularCustoCombustivel(totalDistance, consumo.valor, avgPrice);
     const costPerKmEstimated = consumo.valor > 0 && avgPrice > 0 ? avgPrice / consumo.valor : 0;
-    
     return {
-      totalEarnings, totalDistance, totalExpenses, fuelCost, maintCost, expCost,
-      profit: totalEarnings - totalExpenses,
-      rideCount: filteredRides.length,
-      avgPerKm: totalDistance > 0 ? totalEarnings / totalDistance : 0,
-      avgPerRide: filteredRides.length > 0 ? totalEarnings / filteredRides.length : 0,
-      costPerKm: totalDistance > 0 ? totalExpenses / totalDistance : 0,
-      profitMargin: totalEarnings > 0 ? ((totalEarnings - totalExpenses) / totalEarnings) * 100 : 0,
+      totalEarnings: s.ganhos,
+      totalDistance: s.distancia,
+      totalExpenses: s.gastosReais,
+      fuelCost: s.combustivelReal,
+      maintCost: s.manutencao,
+      expCost: s.extras,
+      profit: s.lucro,
+      rideCount: s.qtdCorridas,
+      avgPerKm: s.mediaPorKm,
+      avgPerRide: s.mediaPorCorrida,
+      costPerKm: s.custoPorKm,
+      profitMargin: s.margemLucro,
       fuelLiters,
-      kmPerLiter: fuelLiters > 0 ? totalDistance / fuelLiters : 0,
-      estimatedLiters,
-      estimatedFuelCost,
+      kmPerLiter: fuelLiters > 0 ? s.distancia / fuelLiters : 0,
+      estimatedLiters: s.litrosEstimados,
+      estimatedFuelCost: s.custoCombustivelEstimado,
       costPerKmEstimated,
-      estimatedProfit: totalEarnings - estimatedFuelCost - maintCost - expCost,
       consumoModo: consumo.modo,
       consumoValor: consumo.valor,
     };
   }, [rides, fuel, maintenance, expenses, period]);
 
-  const todayProfit = useMemo(() => computeProfit(rides, fuel, maintenance, expenses, isToday), [rides, fuel, maintenance, expenses]);
-  const weeklyProfit = useMemo(() => computeProfit(rides, fuel, maintenance, expenses, isThisWeek), [rides, fuel, maintenance, expenses]);
-  const monthlyProfit = useMemo(() => computeProfit(rides, fuel, maintenance, expenses, isThisMonth), [rides, fuel, maintenance, expenses]);
+  // Goals must reflect the SAME profit definition as the main "Lucro Líquido" card.
+  const todayProfit = useMemo(() => computePeriodSummary(isToday).lucro, [rides, fuel, maintenance, expenses]);
+  const weeklyProfit = useMemo(() => computePeriodSummary(isThisWeek).lucro, [rides, fuel, maintenance, expenses]);
+  const monthlyProfit = useMemo(() => computePeriodSummary(isThisMonth).lucro, [rides, fuel, maintenance, expenses]);
 
   const dailyGoalPct = goals.daily > 0 ? Math.min((todayProfit / goals.daily) * 100, 100) : 0;
   const weeklyGoalPct = goals.weekly > 0 ? Math.min((weeklyProfit / goals.weekly) * 100, 100) : 0;
