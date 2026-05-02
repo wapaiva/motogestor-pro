@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2, Bike, CalendarIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -32,6 +32,17 @@ export default function Rides() {
   const { user } = useAuth();
   const [rides, setRides] = useState(storage.getRides());
   const [showForm, setShowForm] = useState(false);
+
+  // Re-render when Firestore real-time sync updates localStorage or user changes
+  useEffect(() => {
+    const refresh = () => setRides(storage.getRides());
+    window.addEventListener("mg:data-sync", refresh);
+    window.addEventListener("mg:user-changed", refresh);
+    return () => {
+      window.removeEventListener("mg:data-sync", refresh);
+      window.removeEventListener("mg:user-changed", refresh);
+    };
+  }, []);
 
   const profile = storage.getProfile();
   const isMotoRegistered = !!(profile.motoModel && profile.motoYear);
