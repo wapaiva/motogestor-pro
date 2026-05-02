@@ -119,8 +119,8 @@ function set(key: string, value: unknown) {
 }
 
 export const storage = {
-  getRides: (): Ride[] => get("mg_rides", []),
-  saveRides: (r: Ride[]) => set("mg_rides", r),
+  getRides: (): Ride[] => get("rides", []),
+  saveRides: (r: Ride[]) => set("rides", r),
   addRide: (r: Ride) => {
     const all = storage.getRides();
     all.push(r);
@@ -129,8 +129,8 @@ export const storage = {
   deleteRide: (id: string) =>
     storage.saveRides(storage.getRides().filter((r) => r.id !== id)),
 
-  getFuel: (): FuelEntry[] => get("mg_fuel", []),
-  saveFuel: (f: FuelEntry[]) => set("mg_fuel", f),
+  getFuel: (): FuelEntry[] => get("fuel", []),
+  saveFuel: (f: FuelEntry[]) => set("fuel", f),
   addFuel: (f: FuelEntry) => {
     const all = storage.getFuel();
     all.push(f);
@@ -139,8 +139,8 @@ export const storage = {
   deleteFuel: (id: string) =>
     storage.saveFuel(storage.getFuel().filter((f) => f.id !== id)),
 
-  getMaintenance: (): MaintenanceEntry[] => get("mg_maintenance", []),
-  saveMaintenance: (m: MaintenanceEntry[]) => set("mg_maintenance", m),
+  getMaintenance: (): MaintenanceEntry[] => get("maintenance", []),
+  saveMaintenance: (m: MaintenanceEntry[]) => set("maintenance", m),
   addMaintenance: (m: MaintenanceEntry) => {
     const all = storage.getMaintenance();
     all.push(m);
@@ -149,8 +149,8 @@ export const storage = {
   deleteMaintenance: (id: string) =>
     storage.saveMaintenance(storage.getMaintenance().filter((m) => m.id !== id)),
 
-  getExpenses: (): Expense[] => get("mg_expenses", []),
-  saveExpenses: (e: Expense[]) => set("mg_expenses", e),
+  getExpenses: (): Expense[] => get("expenses", []),
+  saveExpenses: (e: Expense[]) => set("expenses", e),
   addExpense: (e: Expense) => {
     const all = storage.getExpenses();
     all.push(e);
@@ -159,12 +159,37 @@ export const storage = {
   deleteExpense: (id: string) =>
     storage.saveExpenses(storage.getExpenses().filter((e) => e.id !== id)),
 
-  getProfile: (): UserProfile => get("mg_profile", DEFAULT_PROFILE),
-  saveProfile: (p: UserProfile) => set("mg_profile", p),
+  getProfile: (): UserProfile => get("profile", DEFAULT_PROFILE),
+  saveProfile: (p: UserProfile) => set("profile", p),
 
-  getGoals: (): Goals => get("mg_goals", DEFAULT_GOALS),
-  saveGoals: (g: Goals) => set("mg_goals", g),
+  getGoals: (): Goals => get("goals", DEFAULT_GOALS),
+  saveGoals: (g: Goals) => set("goals", g),
 };
+
+// === One-time migration: legacy unscoped keys → active user scope ===
+// Old keys (mg_rides, mg_fuel, ...) were shared across users on the device.
+// On first call we move them under the active uid scope, then delete the
+// legacy keys so subsequent users don't inherit them.
+export function migrateLegacyKeysIntoActiveScope() {
+  const legacy: Array<[string, string]> = [
+    ["mg_rides", "rides"],
+    ["mg_fuel", "fuel"],
+    ["mg_maintenance", "maintenance"],
+    ["mg_expenses", "expenses"],
+    ["mg_profile", "profile"],
+    ["mg_goals", "goals"],
+  ];
+  const uid = getActiveUid();
+  for (const [oldKey, newKey] of legacy) {
+    const raw = localStorage.getItem(oldKey);
+    if (raw == null) continue;
+    const scopedKey = `mg:${uid}:${newKey}`;
+    if (localStorage.getItem(scopedKey) == null) {
+      localStorage.setItem(scopedKey, raw);
+    }
+    localStorage.removeItem(oldKey);
+  }
+}
 
 export function formatCurrency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
