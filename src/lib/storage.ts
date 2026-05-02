@@ -70,9 +70,44 @@ const DEFAULT_GOALS: Goals = {
   monthly: 5000,
 };
 
+// === User-scoped storage ===
+// Each authenticated user has its own keyspace: mg:<uid>:<key>
+// Guests use mg:guest:<key>. The active uid is set via setActiveUser().
+const ACTIVE_UID_KEY = "mg_active_uid";
+
+function getActiveUid(): string {
+  return localStorage.getItem(ACTIVE_UID_KEY) || "guest";
+}
+
+export function setActiveUser(uid: string | null) {
+  const next = uid || "guest";
+  const prev = getActiveUid();
+  localStorage.setItem(ACTIVE_UID_KEY, next);
+  if (prev !== next) {
+    // Notify listeners so screens re-read scoped data
+    window.dispatchEvent(new Event("mg:user-changed"));
+  }
+}
+
+/** Wipe ALL scoped data for a given uid (used on logout to prevent leaks). */
+export function clearUserScope(uid: string | null) {
+  const target = uid || "guest";
+  const prefix = `mg:${target}:`;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(prefix)) keysToRemove.push(k);
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
+}
+
+function scopedKey(key: string): string {
+  return `mg:${getActiveUid()}:${key}`;
+}
+
 function get<T>(key: string, fallback: T): T {
   try {
-    const v = localStorage.getItem(key);
+    const v = localStorage.getItem(scopedKey(key));
     return v ? JSON.parse(v) : fallback;
   } catch {
     return fallback;
@@ -80,7 +115,7 @@ function get<T>(key: string, fallback: T): T {
 }
 
 function set(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value));
+  localStorage.setItem(scopedKey(key), JSON.stringify(value));
 }
 
 export const storage = {
