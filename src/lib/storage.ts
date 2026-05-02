@@ -183,9 +183,9 @@ export function migrateLegacyKeysIntoActiveScope() {
   for (const [oldKey, newKey] of legacy) {
     const raw = localStorage.getItem(oldKey);
     if (raw == null) continue;
-    const scopedKey = `mg:${uid}:${newKey}`;
-    if (localStorage.getItem(scopedKey) == null) {
-      localStorage.setItem(scopedKey, raw);
+    const targetKey = `mg:${uid}:${newKey}`;
+    if (localStorage.getItem(targetKey) == null) {
+      localStorage.setItem(targetKey, raw);
     }
     localStorage.removeItem(oldKey);
   }
