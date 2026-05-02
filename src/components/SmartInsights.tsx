@@ -245,7 +245,8 @@ export default function SmartInsights() {
     }
 
     return result;
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   useEffect(() => {
     if (insights.some((i) => i.type === "danger") && !soundPlayed.current) {
