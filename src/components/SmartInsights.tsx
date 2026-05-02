@@ -11,7 +11,7 @@ interface Insight {
 
 export default function SmartInsights() {
   const soundPlayed = useRef(false);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const refresh = () => setTick((t) => t + 1);
