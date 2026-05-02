@@ -94,6 +94,8 @@ export const getExpensesFromFirestore = (userId: string) => getItems<Expense>(us
 export const subscribeExpenses = (userId: string, cb: (e: Expense[]) => void) => subscribeItems<Expense>(userId, "gastos", cb);
 
 // === Sync: Load Firestore → localStorage (initial load) ===
+// IMPORTANT: Always overwrite local cache so a previous user's residual data
+// is wiped from this account's view.
 export async function syncFromFirestore(userId: string) {
   const { storage } = await import("./storage");
 
@@ -106,15 +108,17 @@ export async function syncFromFirestore(userId: string) {
     getGoalsFromFirestore(userId),
   ]);
 
-  if (rides.length > 0) storage.saveRides(rides);
-  if (fuel.length > 0) storage.saveFuel(fuel);
-  if (maintenance.length > 0) storage.saveMaintenance(maintenance);
-  if (expenses.length > 0) storage.saveExpenses(expenses);
+  storage.saveRides(rides);
+  storage.saveFuel(fuel);
+  storage.saveMaintenance(maintenance);
+  storage.saveExpenses(expenses);
   if (profile) storage.saveProfile(profile);
   if (goals) storage.saveGoals(goals);
 }
 
 // === Sync: localStorage → Firestore (migrate existing data) ===
+// Only call this for the FIRST sign-in of a fresh account that already had
+// guest data on the device. Never call after switching accounts.
 export async function migrateLocalToFirestore(userId: string) {
   const { storage } = await import("./storage");
 
