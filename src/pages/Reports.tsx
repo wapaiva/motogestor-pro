@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, BarChart3, Share2, TrendingUp, TrendingDown } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, Legend,
 } from "recharts";
-import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, calcularCustoCombustivel, calcularLitrosGastos, getAvgFuelPrice, obterConsumoAtivo } from "@/lib/storage";
+import { storage, formatCurrency, isToday, isThisWeek, isThisMonth, obterConsumoAtivo, computePeriodSummary } from "@/lib/storage";
 import { toast } from "sonner";
 
 type Period = "hoje" | "semana" | "mes";
@@ -25,6 +25,19 @@ const PERIOD_LABELS: Record<Period, string> = { hoje: "Hoje", semana: "Semana", 
 
 export default function Reports() {
   const [period, setPeriod] = useState<Period>("mes");
+  const [, setSyncTick] = useState(0);
+
+  // Re-render when Firestore real-time sync updates localStorage or user changes
+  useEffect(() => {
+    const onSync = () => setSyncTick((t) => t + 1);
+    window.addEventListener("mg:data-sync", onSync);
+    window.addEventListener("mg:user-changed", onSync);
+    return () => {
+      window.removeEventListener("mg:data-sync", onSync);
+      window.removeEventListener("mg:user-changed", onSync);
+    };
+  }, []);
+
   const rides = storage.getRides();
   const fuel = storage.getFuel();
   const maint = storage.getMaintenance();
@@ -34,47 +47,43 @@ export default function Reports() {
   const filterFn = period === "hoje" ? isToday : period === "semana" ? isThisWeek : isThisMonth;
 
   const data = useMemo(() => {
+    const s = computePeriodSummary(filterFn);
     const fr = rides.filter(r => filterFn(r.date));
     const ff = fuel.filter(f => filterFn(f.date));
-    const fm = maint.filter(m => filterFn(m.date));
-    const fe = exp.filter(e => filterFn(e.date));
-    const earnings = fr.reduce((s, r) => s + r.amount, 0);
-    const distance = fr.reduce((s, r) => s + r.distance, 0);
-    const fuelCost = ff.reduce((s, f) => s + f.amount, 0);
-    const maintCost = fm.reduce((s, m) => s + m.amount, 0);
-    const expCost = fe.reduce((s, e) => s + e.amount, 0);
-    const totalExpenses = fuelCost + maintCost + expCost;
-    const fuelLiters = ff.reduce((s, f) => s + f.liters, 0);
-
-    // Smart consumption: real if available, else expected
-    const consumo = obterConsumoAtivo();
-    const avgPrice = getAvgFuelPrice();
-    const estimatedLiters = calcularLitrosGastos(distance, consumo.valor);
-    const estimatedFuelCost = calcularCustoCombustivel(distance, consumo.valor, avgPrice);
+    const fuelLiters = ff.reduce((sum, f) => sum + (Number(f.liters) || 0), 0);
 
     // Platform breakdown
     const platformMap: Record<string, number> = {};
-    fr.forEach(r => { platformMap[r.platform] = (platformMap[r.platform] || 0) + r.amount; });
+    fr.forEach(r => {
+      const key = r.platform === "Outro" && r.customSource ? r.customSource : (r.platform || "Outro");
+      platformMap[key] = (platformMap[key] || 0) + (Number(r.amount) || 0);
+    });
 
     // Best day
     const dayMap: Record<string, number> = {};
     fr.forEach(r => {
       const day = new Date(r.date).toLocaleDateString("pt-BR", { weekday: "long" });
-      dayMap[day] = (dayMap[day] || 0) + r.amount;
+      dayMap[day] = (dayMap[day] || 0) + (Number(r.amount) || 0);
     });
     const bestDay = Object.entries(dayMap).sort((a, b) => b[1] - a[1])[0];
 
     return {
-      earnings, totalExpenses, profit: earnings - totalExpenses,
-      rideCount: fr.length, distance, fuelCost, maintCost, expCost,
-      costPerKm: distance > 0 ? totalExpenses / distance : 0,
-      avgPerRide: fr.length > 0 ? earnings / fr.length : 0,
-      avgPerKm: distance > 0 ? earnings / distance : 0,
-      profitMargin: earnings > 0 ? ((earnings - totalExpenses) / earnings) * 100 : 0,
+      earnings: s.ganhos,
+      totalExpenses: s.gastosReais,
+      profit: s.lucro,
+      rideCount: s.qtdCorridas,
+      distance: s.distancia,
+      fuelCost: s.combustivelReal,
+      maintCost: s.manutencao,
+      expCost: s.extras,
+      costPerKm: s.custoPorKm,
+      avgPerRide: s.mediaPorCorrida,
+      avgPerKm: s.mediaPorKm,
+      profitMargin: s.margemLucro,
       fuelLiters,
-      kmPerLiter: fuelLiters > 0 ? distance / fuelLiters : 0,
-      estimatedLiters,
-      estimatedFuelCost,
+      kmPerLiter: fuelLiters > 0 ? s.distancia / fuelLiters : 0,
+      estimatedLiters: s.litrosEstimados,
+      estimatedFuelCost: s.custoCombustivelEstimado,
       platformData: Object.entries(platformMap).map(([name, value]) => ({ name, value })),
       bestDay: bestDay ? bestDay[0] : "—",
       bestDayAmount: bestDay ? bestDay[1] : 0,
