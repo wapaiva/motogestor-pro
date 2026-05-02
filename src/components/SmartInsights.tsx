@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { AlertTriangle, TrendingDown, Fuel, Wrench, Zap, BarChart3 } from "lucide-react";
 import { storage, formatCurrency, isThisWeek, isThisMonth, isToday, getAvgFuelPrice, obterConsumoAtivo, getConsumoReal } from "@/lib/storage";
 import { playAlertSound } from "@/lib/sounds";
