@@ -305,3 +305,66 @@ export function validarAbastecimento(odometer: number): { valid: boolean; messag
   }
   return { valid: true };
 }
+
+// === Single source of truth: period summary ===
+// All screens (Dashboard, Reports, Rides) MUST use this to compute totals
+// and profit so numbers never disagree between views.
+//
+// Definitions:
+//   ganhos       = soma do valor de todas as corridas no período
+//   gastosReais  = combustível registrado + manutenção + extras (no período)
+//   lucro        = ganhos − gastosReais   ← ÚNICA definição de "Lucro Líquido"
+//   custoCombustivelEstimado  = projeção meramente informativa (km × R$/km)
+export interface PeriodSummary {
+  ganhos: number;
+  gastosReais: number;
+  combustivelReal: number;
+  manutencao: number;
+  extras: number;
+  lucro: number;
+  distancia: number;
+  qtdCorridas: number;
+  mediaPorCorrida: number;
+  mediaPorKm: number;
+  custoPorKm: number;
+  margemLucro: number;
+  litrosEstimados: number;
+  custoCombustivelEstimado: number;
+}
+
+export function computePeriodSummary(filterFn: (d: string) => boolean): PeriodSummary {
+  const rides = storage.getRides().filter((r) => filterFn(r.date));
+  const fuel = storage.getFuel().filter((f) => filterFn(f.date));
+  const maint = storage.getMaintenance().filter((m) => filterFn(m.date));
+  const exp = storage.getExpenses().filter((e) => filterFn(e.date));
+
+  const ganhos = rides.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const distancia = rides.reduce((s, r) => s + (Number(r.distance) || 0), 0);
+  const combustivelReal = fuel.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const manutencao = maint.reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  const extras = exp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const gastosReais = combustivelReal + manutencao + extras;
+  const lucro = ganhos - gastosReais;
+
+  const consumo = obterConsumoAtivo();
+  const avgPrice = getAvgFuelPrice();
+  const litrosEstimados = calcularLitrosGastos(distancia, consumo.valor);
+  const custoCombustivelEstimado = calcularCustoCombustivel(distancia, consumo.valor, avgPrice);
+
+  return {
+    ganhos,
+    gastosReais,
+    combustivelReal,
+    manutencao,
+    extras,
+    lucro,
+    distancia,
+    qtdCorridas: rides.length,
+    mediaPorCorrida: rides.length > 0 ? ganhos / rides.length : 0,
+    mediaPorKm: distancia > 0 ? ganhos / distancia : 0,
+    custoPorKm: distancia > 0 ? gastosReais / distancia : 0,
+    margemLucro: ganhos > 0 ? (lucro / ganhos) * 100 : 0,
+    litrosEstimados,
+    custoCombustivelEstimado,
+  };
+}
